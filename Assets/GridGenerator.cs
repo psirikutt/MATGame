@@ -45,14 +45,14 @@ public class GridCell : MonoBehaviour
     // Method to set position with animation
     public void SetPositionWithAnimation(RectTransform buttonRect, float duration = 0.5f)
     {
-        Vector2 targetPosition = new Vector2(XPosition, YPosition);
+        Vector3 targetPosition = new Vector3(XPosition, YPosition, 0);
         LeanTween.move(buttonRect, targetPosition, duration).setEase(LeanTweenType.easeInOutQuad);
     }
 
     // Method to position the button using its RectTransform
     public void SetPosition(RectTransform buttonRect, float duration = 0.5f)
     {
-        buttonRect.anchoredPosition = new Vector2(XPosition, YPosition);
+        buttonRect.anchoredPosition = new Vector3(XPosition, YPosition, 0);
     }
 }
 
@@ -241,22 +241,36 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         // Get half of the cell's width
         RectTransform rectTransform = GetComponent<RectTransform>();
         float halfCellWidth = rectTransform.rect.width / 2;
-        transform.position = new Vector3(worldPosition.x - halfCellWidth, worldPosition.y - halfCellWidth, startPosition.z);
+        transform.position = new Vector3(worldPosition.x - halfCellWidth, worldPosition.y - halfCellWidth, +1f);
+    }
+    private bool CanSwap(Draggable current, Draggable other)
+    {
+        int rowDifference = Mathf.Abs(current.currentRow - other.currentRow);
+        int columnDifference = Mathf.Abs(current.currentColumn - other.currentColumn);
+        Debug.Log("rowDifference:" + rowDifference + " columnDifference:" + columnDifference);
 
+        // The two cells can swap if they are exactly one row or one column apart, but not diagonally
+        return (rowDifference == 1 && columnDifference == 0) || (rowDifference == 0 && columnDifference == 1);
+    }
+    public void OnEndDrag(PointerEventData eventData)
+    {   
+        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(eventData.position);
         // Check if we are overlapping another button
         Collider2D[] colliders = Physics2D.OverlapPointAll(worldPosition);
         foreach (var collider in colliders)
         {
             if (collider.gameObject != this.gameObject && collider.GetComponent<Draggable>() != null)
             {
-                objectToSwap = collider.gameObject;
-                break;
+                Draggable otherDraggable = collider.gameObject.GetComponent<Draggable>();
+
+                // Check if the other grid cell is adjacent (row + 1, row - 1, column + 1, column - 1)
+                if (CanSwap(this, otherDraggable))
+                {
+                    objectToSwap = collider.gameObject;
+                    break;
+                }
             }
         }
-    }
-
-    public void OnEndDrag(PointerEventData eventData)
-    {
         if (objectToSwap != null)
         {
             Draggable otherDraggable = objectToSwap.GetComponent<Draggable>();
