@@ -106,7 +106,7 @@ public partial class GridGenerator : MonoBehaviour
     void Start()
     {
         GenerateGrid();
-    StartCoroutine(CheckIfSumExists());
+        StartCoroutine(DestroyMatchesSilently());
     }
 
     void GenerateGrid()
@@ -279,7 +279,6 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
     {
         int rowDifference = Mathf.Abs(current.currentRow - other.currentRow);
         int columnDifference = Mathf.Abs(current.currentColumn - other.currentColumn);
-        Debug.Log("rowDifference:" + rowDifference + " columnDifference:" + columnDifference);
 
         // The two cells can swap if they are exactly one row or one column apart, but not diagonally
         return (rowDifference == 1 && columnDifference == 0) || (rowDifference == 0 && columnDifference == 1);
@@ -296,7 +295,7 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
                 Draggable otherDraggable = collider.gameObject.GetComponent<Draggable>();
 
                 // Check if the other grid cell is adjacent (row + 1, row - 1, column + 1, column - 1)
-                if (CanSwap(this, otherDraggable))
+                if ((Mathf.Abs(this.currentRow - otherDraggable.currentRow) == 1 && Mathf.Abs(this.currentColumn - otherDraggable.currentColumn) == 0) || (Mathf.Abs(this.currentRow - otherDraggable.currentRow) == 0 && Mathf.Abs(this.currentColumn - otherDraggable.currentColumn) == 1))
                 {
                     objectToSwap = collider.gameObject;
                     break;
@@ -328,6 +327,166 @@ public partial class GridGenerator : MonoBehaviour
     private int score = 0;
     private List<int> combo = new List<int>();
     private bool showKidAnimation = false;
+
+    private IEnumerator DestroyMatchesSilently()
+    {
+        bool matchesExist = true;
+        int count = 0;
+
+        while (matchesExist)
+        {
+            HashSet<Cell> cellsToDestroy = new HashSet<Cell>();
+
+            // Find all matches
+            for (int row = 0; row < rows; row++)
+            {
+                for (int col = 0; col < columns; col++)
+                {
+                    if (buttons[row, col] == null) continue;
+
+                    int a, b, c;
+
+                    // Check vertical operations
+                    if (row + 2 < rows)
+                    {
+                        if (buttons[row + 1, col] != null && buttons[row + 2, col] != null)
+                        {
+                            a = GetCellValue(buttons[row, col].GetComponent<GridCell>());
+                            b = GetCellValue(buttons[row + 1, col].GetComponent<GridCell>());
+                            c = GetCellValue(buttons[row + 2, col].GetComponent<GridCell>());
+
+                            if (CheckOperations(a, b, c))
+                            {
+                                cellsToDestroy.Add(new Cell(row, col));
+                                cellsToDestroy.Add(new Cell(row + 1, col));
+                                cellsToDestroy.Add(new Cell(row + 2, col));
+                            }
+                        }
+                    }
+
+                    // Check horizontal operations
+                    if (col + 2 < columns)
+                    {
+                        if (buttons[row, col + 1] != null && buttons[row, col + 2] != null)
+                        {
+                            a = GetCellValue(buttons[row, col].GetComponent<GridCell>());
+                            b = GetCellValue(buttons[row, col + 1].GetComponent<GridCell>());
+                            c = GetCellValue(buttons[row, col + 2].GetComponent<GridCell>());
+
+                            if (CheckOperations(a, b, c))
+                            {
+                                cellsToDestroy.Add(new Cell(row, col));
+                                cellsToDestroy.Add(new Cell(row, col + 1));
+                                cellsToDestroy.Add(new Cell(row, col + 2));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (cellsToDestroy.Count > 0)
+            {
+                // Step 1: Destroy matched cells silently
+                foreach (Cell cell in cellsToDestroy)
+                {
+                    int row = cell.row;
+                    int col = cell.col;
+
+                    if (buttons[row, col] != null)
+                    {
+                        Destroy(buttons[row, col]);
+                        buttons[row, col] = null;
+                    }
+                }
+
+                // Step 2: Apply gravity silently
+                for (int col = 0; col < columns; col++)
+                {
+                    List<GameObject> newColumn = new List<GameObject>();
+
+                    // Extract non-null blocks from buttons
+                    for (int row = 0; row < rows; row++)
+                    {
+                        if (buttons[row, col] != null)
+                        {
+                            newColumn.Add(buttons[row, col]);
+                        }
+                    }
+
+                    // Calculate the number of empty spaces
+                    int emptySpaces = rows - newColumn.Count;
+
+                    // Add new nodes at the top
+                    for (int i = 0; i < emptySpaces; i++)
+                    {
+                        // Instantiate a new button
+                        GameObject newButton = Instantiate(ButtonTemplate, transform);
+                        newButton.SetActive(true);
+
+                        // Initialize GridCell component
+                        GridCell gridCell = newButton.GetComponent<GridCell>();
+                        if (gridCell == null)
+                            gridCell = newButton.AddComponent<GridCell>();
+
+                        RectTransform templateRect = ButtonTemplate.GetComponent<RectTransform>();
+                        gridCell.Initialize(0, col, templateRect.rect.width, templateRect.rect.height, buttonSpacing);
+
+                        // Set the text on the button
+                        int buttonNumber = CreateRandomNumber(50);
+                        newButton.GetComponentInChildren<TextMeshProUGUI>().text = buttonNumber.ToString();
+
+                        // Add and initialize Draggable component
+                        Draggable draggable = newButton.GetComponent<Draggable>();
+                        if (draggable == null)
+                            draggable = newButton.AddComponent<Draggable>();
+
+                        draggable.gridGenerator = this;
+                        draggable.currentRow = 0;
+                        draggable.currentColumn = col;
+
+                        // Add to newColumn list
+                        newColumn.Insert(0, newButton);
+                    }
+
+                    // Assign back to buttons array
+                    for (int row = 0; row < rows; row++)
+                    {
+                        if (row < newColumn.Count)
+                        {
+                            buttons[row, col] = newColumn[row];
+                            GridCell gridCell = buttons[row, col].GetComponent<GridCell>();
+                            gridCell.Row = row;
+                            gridCell.Column = col;
+
+                            // Update Draggable script indices
+                            Draggable draggable = buttons[row, col].GetComponent<Draggable>();
+                            draggable.currentRow = row;
+                            draggable.currentColumn = col;
+                        }
+                        else
+                        {
+                            buttons[row, col] = null;
+                        }
+                    }
+                }
+
+                // Wait a frame to allow Unity to update
+                yield return null;
+
+                // Continue the loop to check for new matches
+            }
+            else
+            {
+                matchesExist = false;
+            }
+
+            count += 1;
+            if (count > 10)
+            {
+                break;
+            }
+        }
+    }
 
     public IEnumerator CheckIfSumExists()
     {
