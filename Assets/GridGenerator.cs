@@ -76,20 +76,28 @@ public class GridCell : MonoBehaviour
 
     // Method to set position with animation
     public void SetPositionWithAnimation(float duration = 0.5f)
+{
+    RectTransform rectTransform = GetComponent<RectTransform>();
+    Vector2 currentPosition = rectTransform.anchoredPosition;
+    Vector2 targetPosition = new Vector2(XPosition, YPosition);
+
+    // If current position is not the target, animate
+    if (currentPosition != targetPosition)
     {
-        RectTransform rectTransform = GetComponent<RectTransform>();
-        Vector2 targetPosition = new Vector2(XPosition, YPosition);
-        LeanTween.value(gameObject, rectTransform.anchoredPosition, targetPosition, duration)
-                 .setEase(LeanTweenType.easeInOutQuad)
-                 .setOnUpdate((Vector2 val) => {
-                     rectTransform.anchoredPosition = val;
-                 });
+        LeanTween.value(gameObject, currentPosition, targetPosition, duration)
+            .setEase(LeanTweenType.easeInOutQuad)
+            .setOnUpdate((Vector2 val) => {
+                rectTransform.anchoredPosition = val;
+            });
     }
+}
+
 
     // Method to position the button using its RectTransform
-    public void SetPosition(RectTransform buttonRect, float duration = 0.5f)
+    public void SetPosition(float duration = 0.5f)
     {
-        buttonRect.anchoredPosition = new Vector2(XPosition, YPosition);
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        rectTransform.anchoredPosition = new Vector2(XPosition, YPosition);
     }
 }
 
@@ -124,9 +132,6 @@ public partial class GridGenerator : MonoBehaviour
                 RectTransform buttonRect = newButton.GetComponent<RectTransform>();
                 GridCell gridCell = newButton.AddComponent<GridCell>();
                 gridCell.Initialize(i, j, templateRect.rect.width, templateRect.rect.height, buttonSpacing);
-
-                // Set button position using GridCell's SetPosition method
-                gridCell.SetPositionWithAnimation();
 
                 // Set the text on the button
                 int buttonNumber = CreateRandomNumber(50);
