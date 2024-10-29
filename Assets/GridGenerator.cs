@@ -1,6 +1,8 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.EventSystems;
+using System.Collections;
+using System.Collections.Generic;
 
 public class GridCell : MonoBehaviour
 {
@@ -76,19 +78,23 @@ public class GridCell : MonoBehaviour
     public void SetPositionWithAnimation(float duration = 0.5f)
     {
         RectTransform rectTransform = GetComponent<RectTransform>();
-        Vector3 targetPosition = new Vector3(XPosition, YPosition, 0);
-        LeanTween.move(rectTransform, targetPosition, duration).setEase(LeanTweenType.easeInOutQuad);
+        Vector2 targetPosition = new Vector2(XPosition, YPosition);
+        LeanTween.value(gameObject, rectTransform.anchoredPosition, targetPosition, duration)
+                 .setEase(LeanTweenType.easeInOutQuad)
+                 .setOnUpdate((Vector2 val) => {
+                     rectTransform.anchoredPosition = val;
+                 });
     }
 
     // Method to position the button using its RectTransform
     public void SetPosition(RectTransform buttonRect, float duration = 0.5f)
     {
-        buttonRect.anchoredPosition = new Vector3(XPosition, YPosition, 0);
+        buttonRect.anchoredPosition = new Vector2(XPosition, YPosition);
     }
 }
 
 
-public class GridGenerator : MonoBehaviour
+public partial class GridGenerator : MonoBehaviour
 {
     public GameObject ButtonTemplate; // Drag your ButtonTemplate here in the Inspector
     public int rows = 8;
@@ -100,6 +106,7 @@ public class GridGenerator : MonoBehaviour
     void Start()
     {
         GenerateGrid();
+    StartCoroutine(CheckIfSumExists());
     }
 
     void GenerateGrid()
@@ -265,7 +272,7 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         // Get half of the cell's width
         RectTransform rectTransform = GetComponent<RectTransform>();
         float halfCellWidth = rectTransform.rect.width / 2;
-        transform.position = new Vector3(worldPosition.x - halfCellWidth, worldPosition.y - halfCellWidth, +1f);
+        transform.position = new Vector3(worldPosition.x - halfCellWidth, worldPosition.y - halfCellWidth, startPosition.z);
     }
     private bool CanSwap(Draggable current, Draggable other)
     {
@@ -311,6 +318,303 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         }
 
         canvasGroup.blocksRaycasts = true;
+    }
+}
+
+public partial class GridGenerator : MonoBehaviour
+{
+    private bool isMoving = false;
+    private int score = 0;
+    private List<int> combo = new List<int>();
+    private bool showKidAnimation = false;
+
+    public IEnumerator CheckIfSumExists()
+    {
+        HashSet<Cell> cellsToDestroy = new HashSet<Cell>();
+        int valueToDestroy = 0;
+        isMoving = true;
+
+        // Find all cells to destroy
+        for (int row = 0; row < rows; row++)
+        {
+            for (int col = 0; col < columns; col++)
+            {
+                if (buttons[row, col] == null) continue;
+
+                // Check vertical operations
+                if (row + 2 < rows)
+                {
+                    if (CheckVerticalMatch(row, col, ref valueToDestroy, cellsToDestroy))
+                    {
+                        HandleVerticalMatch(row, col, ref valueToDestroy, cellsToDestroy);
+                    }
+                }
+
+                // Check horizontal operations
+                if (col + 2 < columns)
+                {
+                    if (CheckHorizontalMatch(row, col, ref valueToDestroy, cellsToDestroy))
+                    {
+                        HandleHorizontalMatch(row, col, ref valueToDestroy, cellsToDestroy);
+                    }
+                }
+            }
+        }
+
+        yield return StartCoroutine(HandleMatches(cellsToDestroy, valueToDestroy));
+    }
+    private bool CheckVerticalMatch(int row, int col, ref int valueToDestroy, HashSet<Cell> cellsToDestroy)
+    {
+        int a = GetCellValue(row, col);
+        int b = GetCellValue(row + 1, col);
+        int c = GetCellValue(row + 2, col);
+
+        return CheckOperations(a, b, c);
+    }
+
+    private bool CheckHorizontalMatch(int row, int col, ref int valueToDestroy, HashSet<Cell> cellsToDestroy)
+    {
+        int a = GetCellValue(row, col);
+        int b = GetCellValue(row, col + 1);
+        int c = GetCellValue(row, col + 2);
+
+        return CheckOperations(a, b, c);
+    }
+
+    private int GetCellValue(int row, int col)
+    {
+        if (buttons[row, col] == null) return 0;
+        var textComponent = buttons[row, col].GetComponentInChildren<TextMeshProUGUI>();
+        return int.Parse(textComponent.text);
+    }
+
+    private bool CheckOperations(int a, int b, int c)
+    {
+        return CheckPlus(a, b, c) || CheckDiff(a, b, c) || CheckMultiply(a, b, c) || CheckDivide(a, b, c);
+    }
+
+    private bool CheckPlus(int lhs, int rhs, int result)
+    {
+        return lhs + rhs == result;
+    }
+
+    private bool CheckDiff(int lhs, int rhs, int result)
+    {
+        return Mathf.Abs(lhs - rhs) == result;
+    }
+
+    private bool CheckMultiply(int lhs, int rhs, int result)
+    {
+        return lhs * rhs == result;
+    }
+
+    private bool CheckDivide(int lhs, int rhs, int result)
+    {
+        if (rhs == 0) return false;
+        return lhs / rhs == result && lhs % rhs == 0;
+    }
+    private void HandleVerticalMatch(int row, int col, ref int valueToDestroy, HashSet<Cell> cellsToDestroy)
+    {
+        cellsToDestroy.Add(new Cell(row, col));
+        cellsToDestroy.Add(new Cell(row + 1, col));
+        cellsToDestroy.Add(new Cell(row + 2, col));
+
+        valueToDestroy += GetCellValue(row, col) + GetCellValue(row + 1, col) + GetCellValue(row + 2, col);
+    }
+
+    private void HandleHorizontalMatch(int row, int col, ref int valueToDestroy, HashSet<Cell> cellsToDestroy)
+    {
+        cellsToDestroy.Add(new Cell(row, col));
+        cellsToDestroy.Add(new Cell(row, col + 1));
+        cellsToDestroy.Add(new Cell(row, col + 2));
+
+        valueToDestroy += GetCellValue(row, col) + GetCellValue(row, col + 1) + GetCellValue(row, col + 2);
+    }
+    public IEnumerator HandleMatches(HashSet<Cell> cellsToDestroy, int valueToDestroy)
+    {
+        if (cellsToDestroy.Count > 0)
+        {
+            // Step 1: Mark matched cells (optional)
+
+            // Step 2: Delay 0.5 sec and count score
+            yield return new WaitForSeconds(0.5f);
+            score += valueToDestroy;
+
+            // Step 3: Remove matched cells with animation
+            foreach (Cell cell in cellsToDestroy)
+            {
+                if (buttons[cell.row, cell.col] != null)
+                {
+                    GameObject block = buttons[cell.row, cell.col];
+
+                    // Step 1: Create and add the smoke particle effect
+                    // Assume you have a smoke effect prefab at Resources/SmokeEffect
+                    GameObject smokeEffectPrefab = Resources.Load<GameObject>("SmokeEffect");
+                    if (smokeEffectPrefab != null)
+                    {
+                        GameObject smokeEffect = Instantiate(smokeEffectPrefab, block.transform.position, Quaternion.identity, transform);
+                        Destroy(smokeEffect, 0.5f);
+                    }
+
+                    // Step 2: Fade out the block and remove it
+                    CanvasGroup canvasGroup = block.GetComponent<CanvasGroup>();
+                    if (canvasGroup == null)
+                    {
+                        canvasGroup = block.AddComponent<CanvasGroup>();
+                    }
+                    LeanTween.alphaCanvas(canvasGroup, 0f, 0.3f).setOnComplete(() =>
+                    {
+                        Destroy(block);
+                    });
+
+                    // Step 3: Set the block to null to represent its destruction
+                    buttons[cell.row, cell.col] = null;
+                }
+            }
+
+            // Step 4: Apply gravity after destruction animation completes
+            yield return new WaitForSeconds(0.5f);
+            yield return StartCoroutine(ApplyGravityWithAnimation());
+
+            // Step 5: Check for new matches after gravity animation completes
+            if (combo.Count > 0)
+            {
+                combo[combo.Count - 1] += 1;
+            }
+            else
+            {
+                combo.Add(1);
+            }
+
+            showKidAnimation = true;
+            yield return StartCoroutine(CheckIfSumExists());
+        }
+        else
+        {
+            // No matches found, check game over
+            isMoving = false;
+            // Optionally implement checkGameOver()
+        }
+    }
+    public IEnumerator ApplyGravityWithAnimation()
+    {
+        bool anyBlockMoved = false;
+
+        for (int col = 0; col < columns; col++)
+        {
+            int emptyRow = -1;
+            for (int row = rows - 1; row >= 0; row--)
+            {
+                if (buttons[row, col] == null)
+                {
+                    if (emptyRow == -1)
+                    {
+                        emptyRow = row;
+                    }
+                }
+                else if (emptyRow != -1)
+                {
+                    // Move the block down
+                    GameObject block = buttons[row, col];
+                    buttons[emptyRow, col] = block;
+                    buttons[row, col] = null;
+
+                    GridCell gridCell = block.GetComponent<GridCell>();
+                    gridCell.Row = emptyRow;
+
+                    // Update Draggable script indices
+                    Draggable draggable = block.GetComponent<Draggable>();
+                    draggable.currentRow = emptyRow;
+
+                    emptyRow--;
+                    anyBlockMoved = true;
+                }
+            }
+        }
+
+        if (anyBlockMoved)
+        {
+            // Wait for animations to complete
+            yield return new WaitForSeconds(0.5f);
+
+            // Optionally, fill empty spaces at the top with new blocks
+            yield return StartCoroutine(FillEmptySpaces());
+        }
+    }
+
+    private IEnumerator FillEmptySpaces()
+    {
+        for (int col = 0; col < columns; col++)
+        {
+            for (int row = 0; row < rows; row++)
+            {
+                if (buttons[row, col] == null)
+                {
+                    // Instantiate a new button
+                    GameObject newButton = Instantiate(ButtonTemplate, transform);
+                    newButton.SetActive(true);
+
+                    // Initialize GridCell component
+                    GridCell gridCell = newButton.GetComponent<GridCell>();
+                    if (gridCell == null)
+                        gridCell = newButton.AddComponent<GridCell>();
+
+                    RectTransform templateRect = ButtonTemplate.GetComponent<RectTransform>();
+                    gridCell.Initialize(row, col, templateRect.rect.width, templateRect.rect.height, buttonSpacing);
+
+                    // Set the text on the button
+                    int buttonNumber = CreateRandomNumber(50);
+                    newButton.GetComponentInChildren<TextMeshProUGUI>().text = buttonNumber.ToString();
+
+                    // Add and initialize Draggable component
+                    Draggable draggable = newButton.GetComponent<Draggable>();
+                    if (draggable == null)
+                        draggable = newButton.AddComponent<Draggable>();
+
+                    draggable.gridGenerator = this;
+                    draggable.currentRow = row;
+                    draggable.currentColumn = col;
+
+                    // Store button reference
+                    buttons[row, col] = newButton;
+
+                    // Optionally, animate the button appearing
+                    CanvasGroup canvasGroup = newButton.GetComponent<CanvasGroup>();
+                    if (canvasGroup == null)
+                    {
+                        canvasGroup = newButton.AddComponent<CanvasGroup>();
+                    }
+                    canvasGroup.alpha = 0f;
+                    LeanTween.alphaCanvas(canvasGroup, 1f, 0.3f);
+
+                    yield return new WaitForSeconds(0.05f); // Slight delay between spawns
+                }
+            }
+        }
+    }
+}
+
+public class Cell
+{
+    public int row;
+    public int col;
+
+    public Cell(int row, int col)
+    {
+        this.row = row;
+        this.col = col;
+    }
+
+    public override bool Equals(object obj)
+    {
+        Cell other = obj as Cell;
+        if (other == null) return false;
+        return row == other.row && col == other.col;
+    }
+
+    public override int GetHashCode()
+    {
+        return row.GetHashCode() ^ col.GetHashCode();
     }
 }
 
