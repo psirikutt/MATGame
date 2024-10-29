@@ -59,7 +59,7 @@ public class GridCell : MonoBehaviour
     {
         get
         {
-            return Row * (cellHeight + buttonSpacing) - 1.2f;
+            return -Row * (cellHeight + buttonSpacing) + 8.4f;
         }
     }
 
