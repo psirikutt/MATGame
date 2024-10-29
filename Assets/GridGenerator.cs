@@ -177,6 +177,7 @@ public partial class GridGenerator : MonoBehaviour
         draggable1.currentColumn = gridCell1.Column;
         draggable2.currentRow = gridCell2.Row;
         draggable2.currentColumn = gridCell2.Column;
+        StartCoroutine(CheckIfSumExists());
     }
 
 
