@@ -180,20 +180,6 @@ public partial class GridGenerator : MonoBehaviour
         StartCoroutine(CheckIfSumExists());
     }
 
-    // New method: Attempts to swap buttons if it results in a match
-    public bool TrySwapButtons(int row1, int col1, int row2, int col2)
-    {
-        if (CanSwap(row1, col1, row2, col2))
-        {
-            SwapButtons(row1, col1, row2, col2);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
     public bool CanSwap(int fromRow, int fromCol, int toRow, int toCol)
     {
         // Make a copy of the grid to simulate the swap
@@ -409,14 +395,14 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
             if(otherDraggable != null && gridGenerator != null)
             {
                 // Before swapping, attempt to swap using TrySwapButtons
-                if (!gridGenerator.TrySwapButtons(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn))
+                if (!gridGenerator.CanSwap(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn))
                 {
                     // Swap is not allowed, reset positions
                     GridCell gridCell = GetComponent<GridCell>();
                     gridCell.SetPositionWithAnimation();
                     otherDraggable.GetComponent<GridCell>().SetPositionWithAnimation();
                 } else {
-                 //   gridGenerator.SwapButtons(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn);
+                    gridGenerator.SwapButtons(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn);
                 }
             }
         }
@@ -515,7 +501,7 @@ public partial class GridGenerator : MonoBehaviour
                     List<GameObject> newColumn = new List<GameObject>();
 
                     // Extract non-null blocks from buttons
-                    for (int row = 0; row < rows; row++)
+                    for (int row = rows - 1; row >= 0; row--)
                     {
                         if (buttons[row, col] != null)
                         {
@@ -555,28 +541,24 @@ public partial class GridGenerator : MonoBehaviour
                         draggable.currentColumn = col;
 
                         // Add to newColumn list
-                        newColumn.Insert(0, newButton);
+                        newColumn.Add(newButton);
                     }
 
                     // Assign back to buttons array
-                    for (int row = 0; row < rows; row++)
+                    for (int row = rows - 1; row >= 0; row--)
                     {
-                        if (row < newColumn.Count)
-                        {
-                            buttons[row, col] = newColumn[row];
-                            GridCell gridCell = buttons[row, col].GetComponent<GridCell>();
-                            gridCell.Row = row;
-                            gridCell.Column = col;
+                        int newColumnIndex = rows - 1 - row; // Calculate index in newColumn
 
-                            // Update Draggable script indices
-                            Draggable draggable = buttons[row, col].GetComponent<Draggable>();
-                            draggable.currentRow = row;
-                            draggable.currentColumn = col;
-                        }
-                        else
-                        {
-                            buttons[row, col] = null;
-                        }
+                        buttons[row, col] = newColumn[newColumnIndex];
+
+                        GridCell gridCell = buttons[row, col].GetComponent<GridCell>();
+                        gridCell.Row = row;
+                        gridCell.Column = col;
+
+                        // Update Draggable script indices
+                        Draggable draggable = buttons[row, col].GetComponent<Draggable>();
+                        draggable.currentRow = row;
+                        draggable.currentColumn = col;
                     }
                 }
 
@@ -810,14 +792,13 @@ public partial class GridGenerator : MonoBehaviour
         else
         {
             // No matches found, check game over
-            isMoving = false;
             // Optionally implement checkGameOver()
         }
+            isMoving = false;
     }
 
     public IEnumerator ApplyGravityWithAnimation()
     {
-        bool anyBlockMoved = false;
 
         for (int col = 0; col < columns; col++)
         {
@@ -846,19 +827,15 @@ public partial class GridGenerator : MonoBehaviour
                     draggable.currentRow = emptyRow;
 
                     emptyRow--;
-                    anyBlockMoved = true;
                 }
             }
         }
 
-        if (anyBlockMoved)
-        {
             // Wait for animations to complete
             yield return new WaitForSeconds(0.5f);
 
             // Optionally, fill empty spaces at the top with new blocks
             yield return StartCoroutine(FillEmptySpaces());
-        }
     }
 
     private IEnumerator FillEmptySpaces()
