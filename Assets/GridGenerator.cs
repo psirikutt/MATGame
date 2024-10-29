@@ -21,6 +21,8 @@ public class GridCell : MonoBehaviour
                 _row = value;
                 // Call the animation method whenever the row changes
                 SetPositionWithAnimation();
+            } else {
+                SetPosition();
             }
         }
     }
@@ -36,6 +38,8 @@ public class GridCell : MonoBehaviour
                 _column = value;
                 // Call the animation method whenever the column changes
                 SetPositionWithAnimation();
+            } else {
+                SetPosition();
             }
         }
     }
@@ -94,7 +98,7 @@ public class GridCell : MonoBehaviour
 
 
     // Method to position the button using its RectTransform
-    public void SetPosition(float duration = 0.5f)
+    public void SetPosition()
     {
         RectTransform rectTransform = GetComponent<RectTransform>();
         rectTransform.anchoredPosition = new Vector2(XPosition, YPosition);
@@ -197,7 +201,7 @@ public partial class GridGenerator : MonoBehaviour
 
         // Check for any matches in the temporary grid
         bool hasMatch = CheckForMatches(tempGrid);
-
+        Debug.Log(hasMatch);
         return hasMatch && !isMoving;
     }
 
