@@ -331,7 +331,7 @@ public partial class GridGenerator : MonoBehaviour
 
     public IEnumerator CheckIfSumExists()
     {
-        HashSet<Cell> cellsToDestroy = new HashSet<Cell>();
+        List<GridCell> cellsToDestroy = new List<GridCell>();
         int valueToDestroy = 0;
         isMoving = true;
 
@@ -342,21 +342,25 @@ public partial class GridGenerator : MonoBehaviour
             {
                 if (buttons[row, col] == null) continue;
 
+
+                // Get the GridCell instance
+                GridCell currentCell = buttons[row, col].GetComponent<GridCell>();
+
                 // Check vertical operations
                 if (row + 2 < rows)
                 {
-                    if (CheckVerticalMatch(row, col, ref valueToDestroy, cellsToDestroy))
+                    if (CheckVerticalMatch(currentCell, ref valueToDestroy, cellsToDestroy))
                     {
-                        HandleVerticalMatch(row, col, ref valueToDestroy, cellsToDestroy);
+                        HandleVerticalMatch(currentCell, ref valueToDestroy, cellsToDestroy);
                     }
                 }
 
                 // Check horizontal operations
                 if (col + 2 < columns)
                 {
-                    if (CheckHorizontalMatch(row, col, ref valueToDestroy, cellsToDestroy))
+                    if (CheckHorizontalMatch(currentCell, ref valueToDestroy, cellsToDestroy))
                     {
-                        HandleHorizontalMatch(row, col, ref valueToDestroy, cellsToDestroy);
+                        HandleHorizontalMatch(currentCell, ref valueToDestroy, cellsToDestroy);
                     }
                 }
             }
@@ -364,30 +368,50 @@ public partial class GridGenerator : MonoBehaviour
 
         yield return StartCoroutine(HandleMatches(cellsToDestroy, valueToDestroy));
     }
-    private bool CheckVerticalMatch(int row, int col, ref int valueToDestroy, HashSet<Cell> cellsToDestroy)
+    private bool CheckVerticalMatch(GridCell cell, ref int valueToDestroy, List<GridCell> cellsToDestroy)
     {
-        int a = GetCellValue(row, col);
-        int b = GetCellValue(row + 1, col);
-        int c = GetCellValue(row + 2, col);
+        int row = cell.Row;
+        int col = cell.Column;
+
+        if (buttons[row + 1, col] == null || buttons[row + 2, col] == null)
+            return false;
+
+        GridCell cellB = buttons[row + 1, col].GetComponent<GridCell>();
+        GridCell cellC = buttons[row + 2, col].GetComponent<GridCell>();
+
+        int a = GetCellValue(cell);
+        int b = GetCellValue(cellB);
+        int c = GetCellValue(cellC);
 
         return CheckOperations(a, b, c);
     }
 
-    private bool CheckHorizontalMatch(int row, int col, ref int valueToDestroy, HashSet<Cell> cellsToDestroy)
+    private bool CheckHorizontalMatch(GridCell cell, ref int valueToDestroy, List<GridCell> cellsToDestroy)
     {
-        int a = GetCellValue(row, col);
-        int b = GetCellValue(row, col + 1);
-        int c = GetCellValue(row, col + 2);
+        int row = cell.Row;
+        int col = cell.Column;
+
+        if (buttons[row, col + 1] == null || buttons[row, col + 2] == null)
+            return false;
+
+        GridCell cellB = buttons[row, col + 1].GetComponent<GridCell>();
+        GridCell cellC = buttons[row, col + 2].GetComponent<GridCell>();
+
+        int a = GetCellValue(cell);
+        int b = GetCellValue(cellB);
+        int c = GetCellValue(cellC);
 
         return CheckOperations(a, b, c);
     }
 
-    private int GetCellValue(int row, int col)
+
+    private int GetCellValue(GridCell cell)
     {
-        if (buttons[row, col] == null) return 0;
-        var textComponent = buttons[row, col].GetComponentInChildren<TextMeshProUGUI>();
+        if (cell == null) return 0;
+        var textComponent = cell.GetComponentInChildren<TextMeshProUGUI>();
         return int.Parse(textComponent.text);
-    }
+    }   
+
 
     private bool CheckOperations(int a, int b, int c)
     {
@@ -414,24 +438,45 @@ public partial class GridGenerator : MonoBehaviour
         if (rhs == 0) return false;
         return lhs / rhs == result && lhs % rhs == 0;
     }
-    private void HandleVerticalMatch(int row, int col, ref int valueToDestroy, HashSet<Cell> cellsToDestroy)
+    private void HandleVerticalMatch(GridCell cell, ref int valueToDestroy, List<GridCell> cellsToDestroy)
     {
-        cellsToDestroy.Add(new Cell(row, col));
-        cellsToDestroy.Add(new Cell(row + 1, col));
-        cellsToDestroy.Add(new Cell(row + 2, col));
+        int row = cell.Row;
+        int col = cell.Column;
 
-        valueToDestroy += GetCellValue(row, col) + GetCellValue(row + 1, col) + GetCellValue(row + 2, col);
+        GridCell cellB = buttons[row + 1, col].GetComponent<GridCell>();
+        GridCell cellC = buttons[row + 2, col].GetComponent<GridCell>();
+
+        AddCellToDestroy(cell, cellsToDestroy);
+        AddCellToDestroy(cellB, cellsToDestroy);
+        AddCellToDestroy(cellC, cellsToDestroy);
+
+        valueToDestroy += GetCellValue(cell) + GetCellValue(cellB) + GetCellValue(cellC);
     }
 
-    private void HandleHorizontalMatch(int row, int col, ref int valueToDestroy, HashSet<Cell> cellsToDestroy)
+    private void HandleHorizontalMatch(GridCell cell, ref int valueToDestroy, List<GridCell> cellsToDestroy)
     {
-        cellsToDestroy.Add(new Cell(row, col));
-        cellsToDestroy.Add(new Cell(row, col + 1));
-        cellsToDestroy.Add(new Cell(row, col + 2));
+        int row = cell.Row;
+        int col = cell.Column;
 
-        valueToDestroy += GetCellValue(row, col) + GetCellValue(row, col + 1) + GetCellValue(row, col + 2);
+        GridCell cellB = buttons[row, col + 1].GetComponent<GridCell>();
+        GridCell cellC = buttons[row, col + 2].GetComponent<GridCell>();
+
+        AddCellToDestroy(cell, cellsToDestroy);
+        AddCellToDestroy(cellB, cellsToDestroy);
+        AddCellToDestroy(cellC, cellsToDestroy);
+
+        valueToDestroy += GetCellValue(cell) + GetCellValue(cellB) + GetCellValue(cellC);
     }
-    public IEnumerator HandleMatches(HashSet<Cell> cellsToDestroy, int valueToDestroy)
+
+    private void AddCellToDestroy(GridCell cell, List<GridCell> cellsToDestroy)
+    {
+        if (!cellsToDestroy.Contains(cell))
+        {
+            cellsToDestroy.Add(cell);
+        }
+    }
+
+    public IEnumerator HandleMatches(List<GridCell> cellsToDestroy, int valueToDestroy)
     {
         if (cellsToDestroy.Count > 0)
         {
@@ -442,11 +487,14 @@ public partial class GridGenerator : MonoBehaviour
             score += valueToDestroy;
 
             // Step 3: Remove matched cells with animation
-            foreach (Cell cell in cellsToDestroy)
+            foreach (GridCell cell in cellsToDestroy)
             {
-                if (buttons[cell.row, cell.col] != null)
+                int row = cell.Row;
+                int col = cell.Column;
+
+                if (buttons[row, col] != null)
                 {
-                    GameObject block = buttons[cell.row, cell.col];
+                    GameObject block = buttons[row, col];
 
                     // Step 1: Create and add the smoke particle effect
                     // Assume you have a smoke effect prefab at Resources/SmokeEffect
@@ -469,7 +517,7 @@ public partial class GridGenerator : MonoBehaviour
                     });
 
                     // Step 3: Set the block to null to represent its destruction
-                    buttons[cell.row, cell.col] = null;
+                    buttons[row, col] = null;
                 }
             }
 
@@ -497,6 +545,7 @@ public partial class GridGenerator : MonoBehaviour
             // Optionally implement checkGameOver()
         }
     }
+
     public IEnumerator ApplyGravityWithAnimation()
     {
         bool anyBlockMoved = false;
