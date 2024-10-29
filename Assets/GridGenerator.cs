@@ -1,13 +1,42 @@
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
-using UnityEngine.Rendering.Universal;
 
 public class GridCell : MonoBehaviour
 {
-    public int row;    // Row in the grid
-    public int column; // Column in the grid
+
+    private int _row;    // Backing field for the row
+    private int _column; // Backing field for the column
+
+    // Property for row with didSet-like behavior
+    public int Row
+    {
+        get => _row;
+        set
+        {
+            if (_row != value) // Only run if value actually changes
+            {
+                _row = value;
+                // Call the animation method whenever the row changes
+                SetPositionWithAnimation();
+            }
+        }
+    }
+
+    // Property for column with didSet-like behavior
+    public int Column
+    {
+        get => _column;
+        set
+        {
+            if (_column != value) // Only run if value actually changes
+            {
+                _column = value;
+                // Call the animation method whenever the column changes
+                SetPositionWithAnimation();
+            }
+        }
+    }
 
     // These variables will be used to compute x and y positions
     public float cellWidth;   // Width of the button template
@@ -19,7 +48,7 @@ public class GridCell : MonoBehaviour
     {
         get
         {
-            return column * (cellWidth + buttonSpacing) - 5.4f;
+            return Column * (cellWidth + buttonSpacing) - 5.4f;
         }
     }
 
@@ -28,25 +57,27 @@ public class GridCell : MonoBehaviour
     {
         get
         {
-            return row * (cellHeight + buttonSpacing) - 1.2f;
+            return Row * (cellHeight + buttonSpacing) - 1.2f;
         }
     }
 
     // Method to initialize the grid cell with row, column, width, height, and spacing
     public void Initialize(int row, int column, float width, float height, float spacing)
     {
-        this.row = row;
-        this.column = column;
+        this.Row = row;
+        this.Column = column;
         this.cellWidth = width;
         this.cellHeight = height;
         this.buttonSpacing = spacing;
+        SetPositionWithAnimation();
     }
 
     // Method to set position with animation
-    public void SetPositionWithAnimation(RectTransform buttonRect, float duration = 0.5f)
+    public void SetPositionWithAnimation(float duration = 0.5f)
     {
+        RectTransform rectTransform = GetComponent<RectTransform>();
         Vector3 targetPosition = new Vector3(XPosition, YPosition, 0);
-        LeanTween.move(buttonRect, targetPosition, duration).setEase(LeanTweenType.easeInOutQuad);
+        LeanTween.move(rectTransform, targetPosition, duration).setEase(LeanTweenType.easeInOutQuad);
     }
 
     // Method to position the button using its RectTransform
@@ -88,7 +119,7 @@ public class GridGenerator : MonoBehaviour
                 gridCell.Initialize(i, j, templateRect.rect.width, templateRect.rect.height, buttonSpacing);
 
                 // Set button position using GridCell's SetPosition method
-                gridCell.SetPositionWithAnimation(buttonRect);
+                gridCell.SetPositionWithAnimation();
 
                 // Set the text on the button
                 int buttonNumber = CreateRandomNumber(50);
@@ -124,28 +155,21 @@ public class GridGenerator : MonoBehaviour
         GridCell gridCell2 = buttons[row2, col2].GetComponent<GridCell>();
 
         // Swap their row and column values
-        int tempRow = gridCell1.row;
-        int tempCol = gridCell1.column;
-        gridCell1.row = gridCell2.row;
-        gridCell1.column = gridCell2.column;
-        gridCell2.row = tempRow;
-        gridCell2.column = tempCol;
-
-        // Animate the positions using the SetPositionWithAnimation method
-        RectTransform rect1 = buttons[row1, col1].GetComponent<RectTransform>();
-        RectTransform rect2 = buttons[row2, col2].GetComponent<RectTransform>();
-
-        gridCell1.SetPositionWithAnimation(rect1);
-        gridCell2.SetPositionWithAnimation(rect2);
+        int tempRow = gridCell1.Row;
+        int tempCol = gridCell1.Column;
+        gridCell1.Row = gridCell2.Row;
+        gridCell1.Column = gridCell2.Column;
+        gridCell2.Row = tempRow;
+        gridCell2.Column = tempCol;
 
         // Update draggable script indices after animation completes
         Draggable draggable1 = buttons[row1, col1].GetComponent<Draggable>();
         Draggable draggable2 = buttons[row2, col2].GetComponent<Draggable>();
 
-        draggable1.currentRow = gridCell1.row;
-        draggable1.currentColumn = gridCell1.column;
-        draggable2.currentRow = gridCell2.row;
-        draggable2.currentColumn = gridCell2.column;
+        draggable1.currentRow = gridCell1.Row;
+        draggable1.currentColumn = gridCell1.Column;
+        draggable2.currentRow = gridCell2.Row;
+        draggable2.currentColumn = gridCell2.Column;
     }
 
 
@@ -224,8 +248,8 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         GridCell gridCell = GetComponent<GridCell>();
         if (gridCell != null)
         {
-            currentRow = gridCell.row;
-            currentColumn = gridCell.column;
+            currentRow = gridCell.Row;
+            currentColumn = gridCell.Column;
         }
     }
 
@@ -283,7 +307,7 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         {
             // Reset the row and column based on the gridCell data (if needed)
             GridCell gridCell = GetComponent<GridCell>();
-            gridCell.SetPositionWithAnimation(GetComponent<RectTransform>());
+            gridCell.SetPositionWithAnimation();
         }
 
         canvasGroup.blocksRaycasts = true;
