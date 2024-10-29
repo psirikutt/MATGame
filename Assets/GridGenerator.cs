@@ -180,9 +180,110 @@ public partial class GridGenerator : MonoBehaviour
         StartCoroutine(CheckIfSumExists());
     }
 
+    // New method: Attempts to swap buttons if it results in a match
+    public bool TrySwapButtons(int row1, int col1, int row2, int col2)
+    {
+        if (CanSwap(row1, col1, row2, col2))
+        {
+            SwapButtons(row1, col1, row2, col2);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 
+    public bool CanSwap(int fromRow, int fromCol, int toRow, int toCol)
+    {
+        // Make a copy of the grid to simulate the swap
+        GameObject[,] tempGrid = (GameObject[,])buttons.Clone();
 
-    
+        // Perform the swap in the temporary grid
+        var temp = tempGrid[fromRow, fromCol];
+        tempGrid[fromRow, fromCol] = tempGrid[toRow, toCol];
+        tempGrid[toRow, toCol] = temp;
+
+        // Check for any matches in the temporary grid
+        bool hasMatch = CheckForMatches(tempGrid);
+
+        return hasMatch && !isMoving;
+    }
+
+    // Checks if there are any matches in the grid.
+    private bool CheckForMatches(GameObject[,] grid)
+    {
+        int gridSizeY = grid.GetLength(0);
+        int gridSizeX = grid.GetLength(1);
+
+        for (int row = 0; row < gridSizeY; row++)
+        {
+            for (int col = 0; col < gridSizeX; col++)
+            {
+                if (grid[row, col] == null) continue;
+
+                // Check vertical matches
+                if (row + 2 < gridSizeY)
+                {
+                    if (grid[row + 1, col] != null && grid[row + 2, col] != null)
+                    {
+                        int a = GetCellValue(grid[row, col].GetComponent<GridCell>());
+                        int b = GetCellValue(grid[row + 1, col].GetComponent<GridCell>());
+                        int c = GetCellValue(grid[row + 2, col].GetComponent<GridCell>());
+
+                        if (CheckOperationsNoOrder(a, b, c))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                // Check horizontal matches
+                if (col + 2 < gridSizeX)
+                {
+                    if (grid[row, col + 1] != null && grid[row, col + 2] != null)
+                    {
+                        int a = GetCellValue(grid[row, col].GetComponent<GridCell>());
+                        int b = GetCellValue(grid[row, col + 1].GetComponent<GridCell>());
+                        int c = GetCellValue(grid[row, col + 2].GetComponent<GridCell>());
+
+                        if (CheckOperationsNoOrder(a, b, c))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    // Checks all permutations of the three numbers for any operation match
+    private bool CheckOperationsNoOrder(int a, int b, int c)
+    {
+        int[][] permutations = new int[][]
+        {
+            new int[] { a, b, c },
+            new int[] { a, c, b },
+            new int[] { b, a, c },
+            new int[] { b, c, a },
+            new int[] { c, a, b },
+            new int[] { c, b, a },
+        };
+
+        foreach (var perm in permutations)
+        {
+            int x = perm[0];
+            int y = perm[1];
+            int z = perm[2];
+
+            if (CheckPlus(x, y, z) || CheckDiff(x, y, z) || CheckMultiply(x, y, z) || CheckDivide(x, y, z))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     // Existing CreateRandomNumber method...
     int CreateRandomNumber(int N)
@@ -249,7 +350,11 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
 
     void Start()
     {
-        canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        canvasGroup = gameObject.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
+        {
+            canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        }
         canvasGroup.blocksRaycasts = true;
 
         // Initialize currentRow and currentColumn from GridCell component
@@ -260,6 +365,7 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
             currentColumn = gridCell.Column;
         }
     }
+
 
     public void OnBeginDrag(PointerEventData eventData)
     {
@@ -275,14 +381,9 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         float halfCellWidth = rectTransform.rect.width / 2;
         transform.position = new Vector3(worldPosition.x - halfCellWidth, worldPosition.y - halfCellWidth, startPosition.z);
     }
-    private bool CanSwap(Draggable current, Draggable other)
-    {
-        int rowDifference = Mathf.Abs(current.currentRow - other.currentRow);
-        int columnDifference = Mathf.Abs(current.currentColumn - other.currentColumn);
 
-        // The two cells can swap if they are exactly one row or one column apart, but not diagonally
-        return (rowDifference == 1 && columnDifference == 0) || (rowDifference == 0 && columnDifference == 1);
-    }
+    // Checks if swapping two cells results in any matches.
+
     public void OnEndDrag(PointerEventData eventData)
     {   
         Vector3 worldPosition = Camera.main.ScreenToWorldPoint(eventData.position);
@@ -307,7 +408,16 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
             Draggable otherDraggable = objectToSwap.GetComponent<Draggable>();
             if(otherDraggable != null && gridGenerator != null)
             {
-                gridGenerator.SwapButtons(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn);
+                // Before swapping, attempt to swap using TrySwapButtons
+                if (!gridGenerator.TrySwapButtons(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn))
+                {
+                    // Swap is not allowed, reset positions
+                    GridCell gridCell = GetComponent<GridCell>();
+                    gridCell.SetPositionWithAnimation();
+                    otherDraggable.GetComponent<GridCell>().SetPositionWithAnimation();
+                } else {
+                 //   gridGenerator.SwapButtons(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn);
+                }
             }
         }
         else
