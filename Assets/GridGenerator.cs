@@ -216,7 +216,7 @@ public partial class GridGenerator : MonoBehaviour
             for (int col = 0; col < gridSizeX; col++)
             {
                 if (grid[row, col] == null) continue;
-
+                Debug.Log("Checking: " + row + ", " + col + ", " + GetCellValue(grid[row, col].GetComponent<GridCell>()));
                 // Check vertical matches
                 if (row + 2 < gridSizeY)
                 {
@@ -226,8 +226,9 @@ public partial class GridGenerator : MonoBehaviour
                         int b = GetCellValue(grid[row + 1, col].GetComponent<GridCell>());
                         int c = GetCellValue(grid[row + 2, col].GetComponent<GridCell>());
 
-                        if (CheckOperationsNoOrder(a, b, c))
+                        if (CheckOperations(a, b, c))
                         {
+                            Debug.Log("Found match: " + a + ", " + b + ", " + c + " at " + row + ", " + col);
                             return true;
                         }
                     }
@@ -242,39 +243,13 @@ public partial class GridGenerator : MonoBehaviour
                         int b = GetCellValue(grid[row, col + 1].GetComponent<GridCell>());
                         int c = GetCellValue(grid[row, col + 2].GetComponent<GridCell>());
 
-                        if (CheckOperationsNoOrder(a, b, c))
+                        if (CheckOperations(a, b, c))
                         {
+                            Debug.Log("Found match: " + a + ", " + b + ", " + c + " at " + row + ", " + col);
                             return true;
                         }
                     }
                 }
-            }
-        }
-        return false;
-    }
-
-    // Checks all permutations of the three numbers for any operation match
-    private bool CheckOperationsNoOrder(int a, int b, int c)
-    {
-        int[][] permutations = new int[][]
-        {
-            new int[] { a, b, c },
-            new int[] { a, c, b },
-            new int[] { b, a, c },
-            new int[] { b, c, a },
-            new int[] { c, a, b },
-            new int[] { c, b, a },
-        };
-
-        foreach (var perm in permutations)
-        {
-            int x = perm[0];
-            int y = perm[1];
-            int z = perm[2];
-
-            if (CheckPlus(x, y, z) || CheckDiff(x, y, z) || CheckMultiply(x, y, z) || CheckDivide(x, y, z))
-            {
-                return true;
             }
         }
         return false;
@@ -582,7 +557,7 @@ public partial class GridGenerator : MonoBehaviour
             }
 
             count += 1;
-            if (count > 10)
+            if (count > 100)
             {
                 break;
             }
@@ -685,7 +660,7 @@ public partial class GridGenerator : MonoBehaviour
 
     private bool CheckDiff(int lhs, int rhs, int result)
     {
-        return Mathf.Abs(lhs - rhs) == result;
+        return lhs - rhs == result;
     }
 
     private bool CheckMultiply(int lhs, int rhs, int result)
