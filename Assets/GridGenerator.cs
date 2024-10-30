@@ -144,6 +144,8 @@ public partial class GridGenerator : MonoBehaviour
     {
         GenerateGrid();
         StartCoroutine(DestroyMatchesSilently());
+        // Optionally, trigger WaitAndCheck here
+        StartCoroutine(WaitAndCheck());
     }
 
     void GenerateGrid()
@@ -211,7 +213,11 @@ public partial class GridGenerator : MonoBehaviour
         draggable1.currentColumn = gridCell1.Column;
         draggable2.currentRow = gridCell2.Row;
         draggable2.currentColumn = gridCell2.Column;
+        // After swapping and checking for matches
         StartCoroutine(CheckIfSumExists());
+
+        // Optionally, trigger WaitAndCheck here
+        StartCoroutine(WaitAndCheck());
     }
 
     public bool CanSwap(int fromRow, int fromCol, int toRow, int toCol)
