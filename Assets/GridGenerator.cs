@@ -103,6 +103,30 @@ public class GridCell : MonoBehaviour
         RectTransform rectTransform = GetComponent<RectTransform>();
         rectTransform.anchoredPosition = new Vector2(XPosition, YPosition);
     }
+    /// <summary>
+    /// Temporarily darkens the cell to indicate selection.
+    /// </summary>
+    public void DarkenTemporarily(float duration = 0.5f)
+    {
+        StartCoroutine(DarkenRoutine(duration));
+    }
+
+    private IEnumerator DarkenRoutine(float duration)
+    {
+        // Store original color
+        Color originalColor = GetComponent<Image>().color;
+        // Define darkened color (e.g., reduce brightness)
+        Color darkenedColor = originalColor * 0.5f;
+
+        // Apply darkened color
+        GetComponent<Image>().color = darkenedColor;
+
+        // Wait for the specified duration
+        yield return new WaitForSeconds(duration);
+
+        // Revert to original color
+        GetComponent<Image>().color = originalColor;
+    }
 }
 
 
@@ -874,6 +898,131 @@ public partial class GridGenerator : MonoBehaviour
     }
 }
 
+public partial class GridGenerator : MonoBehaviour
+{
+    // New variables for WaitAndCheck
+    private bool isWaiting = false;
+
+    /// <summary>
+    /// Represents possible moves that result in a match.
+    /// </summary>
+    public IEnumerator WaitAndCheck()
+    {
+        if (isWaiting)
+            yield break; // Prevent concurrent execution
+
+        isWaiting = true;
+        Debug.Log("waitAndCheck");
+
+        List<Move> availableMoves = GetAvailableMoves();
+
+        // Wait for 5 seconds
+        yield return new WaitForSeconds(5f);
+
+        if (availableMoves.Count == 0)
+        {
+            // No available moves, create a new or blocked grid
+            // Implement these methods as needed
+            //CreateRandomGrid();
+            // CreateBlockedGrid();
+        }
+        else
+        {
+            // Select a random move
+            int randomIndex = Random.Range(0, availableMoves.Count); // Random.Range is inclusive for min, exclusive for max
+            Move firstMove = availableMoves[randomIndex];
+            Debug.Log(firstMove.ToString());
+
+            // Darken the involved grid nodes temporarily
+            // Ensure that gridNodes corresponds to buttons
+            if (buttons[firstMove.Row, firstMove.Col] != null)
+            {
+                GridCell cell = buttons[firstMove.Row, firstMove.Col].GetComponent<GridCell>();
+                if (cell != null)
+                {
+                    cell.DarkenTemporarily();
+                }
+            }
+
+            if (buttons[firstMove.Row + firstMove.Dr, firstMove.Col + firstMove.Dc] != null)
+            {
+                GridCell adjacentCell = buttons[firstMove.Row + firstMove.Dr, firstMove.Col + firstMove.Dc].GetComponent<GridCell>();
+                if (adjacentCell != null)
+                {
+                    adjacentCell.DarkenTemporarily();
+                }
+            }
+        }
+
+        isWaiting = false;
+    }
+    public List<Move> GetAvailableMoves()
+    {
+        HashSet<Move> availableMoves = new HashSet<Move>();
+
+        // Define possible directions with their corresponding delta rows and columns
+        var directions = new List<(Direction direction, int dr, int dc)>
+        {
+            (Direction.Up, -1, 0),
+            (Direction.Down, 1, 0),
+            (Direction.Left, 0, -1),
+            (Direction.Right, 0, 1)
+        };
+
+        for (int row = 0; row < rows; row++)
+        {
+            for (int col = 0; col < columns; col++)
+            {
+                if (buttons[row, col] == null)
+                    continue;
+
+                GridCell currentCell = buttons[row, col].GetComponent<GridCell>();
+                if (currentCell == null)
+                    continue;
+
+                for (int i = 0; i < directions.Count; i++)
+                {
+                    var (direction, dr, dc) = directions[i];
+                    int newRow = row + dr;
+                    int newCol = col + dc;
+
+                    // Check if the adjacent position is valid and not null
+                    if (IsValidPosition(newRow, newCol) && buttons[newRow, newCol] != null)
+                    {
+                        GridCell targetCell = buttons[newRow, newCol].GetComponent<GridCell>();
+                        if (targetCell == null)
+                            continue;
+
+                        // Simulate the swap in a temporary grid
+                        GameObject[,] tempGrid = (GameObject[,])buttons.Clone();
+
+                        // Swap the cells in the temporary grid
+                        GameObject temp = tempGrid[row, col];
+                        tempGrid[row, col] = tempGrid[newRow, newCol];
+                        tempGrid[newRow, newCol] = temp;
+
+                        // Check if the swap results in any matches
+                        if (CheckForMatches(tempGrid))
+                        {
+                            Move move = new Move(row, col, direction, dr, dc);
+                            availableMoves.Add(move);
+                        }
+                    }
+                }
+            }
+        }
+
+        return new List<Move>(availableMoves);
+    }
+    /// <summary>
+    /// Checks if the given row and column are within the grid bounds.
+    /// </summary>
+    private bool IsValidPosition(int row, int col)
+    {
+        return row >= 0 && row < rows && col >= 0 && col < columns;
+    }
+}
+
 public class Cell
 {
     public int row;
@@ -898,3 +1047,43 @@ public class Cell
     }
 }
 
+public enum Direction
+{
+    Up,
+    Down,
+    Left,
+    Right
+}
+
+public class Move
+{
+    public int Row { get; private set; }
+    public int Col { get; private set; }
+    public Direction Direction { get; private set; }
+    public int Dr { get; private set; }
+    public int Dc { get; private set; }
+
+    public Move(int row, int col, Direction direction, int dr, int dc)
+    {
+        Row = row;
+        Col = col;
+        Direction = direction;
+        Dr = dr;
+        Dc = dc;
+    }
+
+    // Override Equals and GetHashCode to ensure uniqueness in HashSet
+    public override bool Equals(object obj)
+    {
+        if (obj is Move other)
+        {
+            return Row == other.Row && Col == other.Col && Direction == other.Direction;
+        }
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+        return Row.GetHashCode() ^ Col.GetHashCode() ^ Direction.GetHashCode();
+    }
+}
