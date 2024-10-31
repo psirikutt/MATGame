@@ -232,7 +232,6 @@ public partial class gridcreator : MonoBehaviour
 
         // Check for any matches in the temporary grid
         bool hasMatch = CheckForMatches(tempGrid);
-        Debug.Log(hasMatch);
         return hasMatch && !isMoving;
     }
 
@@ -247,7 +246,6 @@ public partial class gridcreator : MonoBehaviour
             for (int col = 0; col < gridSizeX; col++)
             {
                 if (grid[row, col] == null) continue;
-                Debug.Log("Checking: " + row + ", " + col + ", " + GetCellValue(grid[row, col].GetComponent<GridCell>()));
                 // Check vertical matches
                 if (row + 2 < gridSizeY)
                 {
@@ -615,7 +613,7 @@ public partial class gridcreator : MonoBehaviour
                 // Check vertical operations
                 if (row + 2 < rows)
                 {
-                    if (CheckVerticalMatch(currentCell, ref valueToDestroy, cellsToDestroy))
+                    if (CheckVerticalMatch(currentCell))
                     {
                         HandleVerticalMatch(currentCell, ref valueToDestroy, cellsToDestroy);
                     }
@@ -624,7 +622,7 @@ public partial class gridcreator : MonoBehaviour
                 // Check horizontal operations
                 if (col + 2 < columns)
                 {
-                    if (CheckHorizontalMatch(currentCell, ref valueToDestroy, cellsToDestroy))
+                    if (CheckHorizontalMatch(currentCell))
                     {
                         HandleHorizontalMatch(currentCell, ref valueToDestroy, cellsToDestroy);
                     }
@@ -634,7 +632,7 @@ public partial class gridcreator : MonoBehaviour
 
         yield return StartCoroutine(HandleMatches(cellsToDestroy, valueToDestroy));
     }
-    private bool CheckVerticalMatch(GridCell cell, ref int valueToDestroy, List<GridCell> cellsToDestroy)
+    private bool CheckVerticalMatch(GridCell cell)
     {
         int row = cell.Row;
         int col = cell.Column;
@@ -652,7 +650,7 @@ public partial class gridcreator : MonoBehaviour
         return CheckOperations(a, b, c);
     }
 
-    private bool CheckHorizontalMatch(GridCell cell, ref int valueToDestroy, List<GridCell> cellsToDestroy)
+    private bool CheckHorizontalMatch(GridCell cell)
     {
         int row = cell.Row;
         int col = cell.Column;
@@ -916,7 +914,7 @@ public partial class gridcreator : MonoBehaviour
     public IEnumerator WaitAndCheck()
     {
         if (isWaiting)
-            yield break; // Prevent concurrent execution
+          //  yield break; // Prevent concurrent execution
 
         isWaiting = true;
         Debug.Log("waitAndCheck");
@@ -965,6 +963,7 @@ public partial class gridcreator : MonoBehaviour
     }
     public List<Move> GetAvailableMoves()
     {
+        Debug.Log("GetAvailableMoves");
         HashSet<Move> availableMoves = new HashSet<Move>();
 
         // Define possible directions with their corresponding delta rows and columns
@@ -980,6 +979,7 @@ public partial class gridcreator : MonoBehaviour
         {
             for (int col = 0; col < columns; col++)
             {
+                Debug.Log(row + ", " + col);
                 if (buttons[row, col] == null)
                     continue;
 
@@ -1014,7 +1014,12 @@ public partial class gridcreator : MonoBehaviour
                             Move move = new Move(row, col, direction, dr, dc);
                             availableMoves.Add(move);
                         }
+                        Debug.Log("Available moves found: " + availableMoves.Count);
                     }
+                }
+                if (availableMoves.Count > 0)
+                {
+                    return new List<Move>(availableMoves); // Exit the loop when availableMoves found
                 }
             }
         }
