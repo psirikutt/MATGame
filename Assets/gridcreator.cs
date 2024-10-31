@@ -131,7 +131,7 @@ public class GridCell : MonoBehaviour
 }
 
 
-public partial class GridGenerator : MonoBehaviour
+public partial class gridcreator : MonoBehaviour
 {
     public GameObject ButtonTemplate; // Drag your ButtonTemplate here in the Inspector
     public int rows = 8;
@@ -170,7 +170,7 @@ public partial class GridGenerator : MonoBehaviour
 
                 // Add drag component
                 Draggable draggable = newButton.AddComponent<Draggable>();
-                draggable.gridGenerator = this;
+                draggable.gridcreator = this;
                 draggable.currentRow = i;
                 draggable.currentColumn = j;
 
@@ -341,7 +341,7 @@ public partial class GridGenerator : MonoBehaviour
 
 public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    public GridGenerator gridGenerator;
+    public gridcreator gridcreator;
     public int currentRow;
     public int currentColumn;
 
@@ -407,17 +407,17 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         if (objectToSwap != null)
         {
             Draggable otherDraggable = objectToSwap.GetComponent<Draggable>();
-            if(otherDraggable != null && gridGenerator != null)
+            if(otherDraggable != null && gridcreator != null)
             {
                 // Before swapping, attempt to swap using TrySwapButtons
-                if (!gridGenerator.CanSwap(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn))
+                if (!gridcreator.CanSwap(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn))
                 {
                     // Swap is not allowed, reset positions
                     GridCell gridCell = GetComponent<GridCell>();
                     gridCell.SetPositionWithAnimation();
                     otherDraggable.GetComponent<GridCell>().SetPositionWithAnimation();
                 } else {
-                    gridGenerator.SwapButtons(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn);
+                    gridcreator.SwapButtons(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn);
                 }
             }
         }
@@ -432,7 +432,7 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
     }
 }
 
-public partial class GridGenerator : MonoBehaviour
+public partial class gridcreator : MonoBehaviour
 {
     private bool isMoving = false;
     private int score = 0;
@@ -551,7 +551,7 @@ public partial class GridGenerator : MonoBehaviour
                         if (draggable == null)
                             draggable = newButton.AddComponent<Draggable>();
 
-                        draggable.gridGenerator = this;
+                        draggable.gridcreator = this;
                         draggable.currentRow = 0;
                         draggable.currentColumn = col;
 
@@ -882,7 +882,7 @@ public partial class GridGenerator : MonoBehaviour
                     if (draggable == null)
                         draggable = newButton.AddComponent<Draggable>();
 
-                    draggable.gridGenerator = this;
+                    draggable.gridcreator = this;
                     draggable.currentRow = row;
                     draggable.currentColumn = col;
 
@@ -905,7 +905,7 @@ public partial class GridGenerator : MonoBehaviour
     }
 }
 
-public partial class GridGenerator : MonoBehaviour
+public partial class gridcreator : MonoBehaviour
 {
     // New variables for WaitAndCheck
     private bool isWaiting = false;
