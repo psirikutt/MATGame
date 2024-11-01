@@ -23,7 +23,9 @@ public class GridCell : MonoBehaviour
                 _row = value;
                 // Call the animation method whenever the row changes
                 SetPositionWithAnimation();
-            } else {
+            }
+            else
+            {
                 SetPosition();
             }
         }
@@ -40,7 +42,9 @@ public class GridCell : MonoBehaviour
                 _column = value;
                 // Call the animation method whenever the column changes
                 SetPositionWithAnimation();
-            } else {
+            }
+            else
+            {
                 SetPosition();
             }
         }
@@ -82,21 +86,22 @@ public class GridCell : MonoBehaviour
 
     // Method to set position with animation
     public void SetPositionWithAnimation(float duration = 0.5f)
-{
-    RectTransform rectTransform = GetComponent<RectTransform>();
-    Vector2 currentPosition = rectTransform.anchoredPosition;
-    Vector2 targetPosition = new Vector2(XPosition, YPosition);
-
-    // If current position is not the target, animate
-    if (currentPosition != targetPosition)
     {
-        LeanTween.value(gameObject, currentPosition, targetPosition, duration)
-            .setEase(LeanTweenType.easeInOutQuad)
-            .setOnUpdate((Vector2 val) => {
-                rectTransform.anchoredPosition = val;
-            });
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        Vector2 currentPosition = rectTransform.anchoredPosition;
+        Vector2 targetPosition = new Vector2(XPosition, YPosition);
+
+        // If current position is not the target, animate
+        if (currentPosition != targetPosition)
+        {
+            LeanTween.value(gameObject, currentPosition, targetPosition, duration)
+                .setEase(LeanTweenType.easeInOutQuad)
+                .setOnUpdate((Vector2 val) =>
+                {
+                    rectTransform.anchoredPosition = val;
+                });
+        }
     }
-}
 
 
     // Method to position the button using its RectTransform
@@ -314,6 +319,62 @@ public partial class gridcreator : MonoBehaviour
         return false;
     }
 
+    private bool CheckForMatchesSelectedPosition(GameObject[,] grid, int selectedRow, int selectedCol)
+    {
+        int gridSizeY = grid.GetLength(0);
+        int gridSizeX = grid.GetLength(1);
+
+        // Define the bounds for the row and column based on ±2 range
+        int minRow = Mathf.Max(0, selectedRow - 2);
+        int maxRow = Mathf.Min(gridSizeY - 1, selectedRow + 2);
+        int minCol = Mathf.Max(0, selectedCol - 2);
+        int maxCol = Mathf.Min(gridSizeX - 1, selectedCol + 2);
+
+        for (int row = minRow; row <= maxRow; row++)
+        {
+            for (int col = minCol; col <= maxCol; col++)
+            {
+                if (grid[row, col] == null) continue;
+
+                // Check vertical matches within ±2 range
+                if (row + 2 < gridSizeY && row <= selectedRow + 2)
+                {
+                    if (grid[row + 1, col] != null && grid[row + 2, col] != null)
+                    {
+                        int a = GetCellValue(grid[row, col].GetComponent<GridCell>());
+                        int b = GetCellValue(grid[row + 1, col].GetComponent<GridCell>());
+                        int c = GetCellValue(grid[row + 2, col].GetComponent<GridCell>());
+
+                        if (CheckOperations(a, b, c))
+                        {
+                            Debug.Log("Found vertical match: " + a + ", " + b + ", " + c + " at " + row + ", " + col);
+                            return true;
+                        }
+                    }
+                }
+
+                // Check horizontal matches within ±2 range
+                if (col + 2 < gridSizeX && col <= selectedCol + 2)
+                {
+                    if (grid[row, col + 1] != null && grid[row, col + 2] != null)
+                    {
+                        int a = GetCellValue(grid[row, col].GetComponent<GridCell>());
+                        int b = GetCellValue(grid[row, col + 1].GetComponent<GridCell>());
+                        int c = GetCellValue(grid[row, col + 2].GetComponent<GridCell>());
+
+                        if (CheckOperations(a, b, c))
+                        {
+                            Debug.Log("Found horizontal match: " + a + ", " + b + ", " + c + " at " + row + ", " + col);
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+
     // Existing CreateRandomNumber method...
     int CreateRandomNumber(int N)
     {
@@ -414,7 +475,7 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
     // Checks if swapping two cells results in any matches.
 
     public void OnEndDrag(PointerEventData eventData)
-    {   
+    {
         Vector3 worldPosition = Camera.main.ScreenToWorldPoint(eventData.position);
         // Check if we are overlapping another button
         Collider2D[] colliders = Physics2D.OverlapPointAll(worldPosition);
@@ -435,7 +496,7 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         if (objectToSwap != null)
         {
             Draggable otherDraggable = objectToSwap.GetComponent<Draggable>();
-            if(otherDraggable != null && gridcreator != null)
+            if (otherDraggable != null && gridcreator != null)
             {
                 // Before swapping, attempt to swap using TrySwapButtons
                 if (!gridcreator.CanSwap(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn))
@@ -444,7 +505,9 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
                     GridCell gridCell = GetComponent<GridCell>();
                     gridCell.SetPositionWithAnimation();
                     otherDraggable.GetComponent<GridCell>().SetPositionWithAnimation();
-                } else {
+                }
+                else
+                {
                     gridcreator.SwapButtons(currentRow, currentColumn, otherDraggable.currentRow, otherDraggable.currentColumn);
                 }
             }
@@ -702,7 +765,7 @@ public partial class gridcreator : MonoBehaviour
         if (cell == null) return 0;
         var textComponent = cell.GetComponentInChildren<TextMeshProUGUI>();
         return int.Parse(textComponent.text);
-    }   
+    }
 
 
     private bool CheckOperations(int a, int b, int c)
@@ -835,7 +898,7 @@ public partial class gridcreator : MonoBehaviour
             // No matches found, check game over
             // Optionally implement checkGameOver()
         }
-            busy = false;
+        busy = false;
     }
 
     public IEnumerator ApplyGravityWithAnimation()
@@ -872,11 +935,11 @@ public partial class gridcreator : MonoBehaviour
             }
         }
 
-            // Wait for animations to complete
-            yield return new WaitForSeconds(0.5f);
+        // Wait for animations to complete
+        yield return new WaitForSeconds(0.5f);
 
-            // Optionally, fill empty spaces at the top with new blocks
-            yield return StartCoroutine(FillEmptySpaces());
+        // Optionally, fill empty spaces at the top with new blocks
+        yield return StartCoroutine(FillEmptySpaces());
     }
 
     private IEnumerator FillEmptySpaces()
@@ -942,51 +1005,52 @@ public partial class gridcreator : MonoBehaviour
     public IEnumerator WaitAndCheck()
     {
         if (isWaiting)
-          //  yield break; // Prevent concurrent execution
+            //  yield break; // Prevent concurrent execution
 
-        isWaiting = true;
+            isWaiting = true;
         Debug.Log("waitAndCheck");
 
         List<Move> availableMoves = GetAvailableMoves();
 
         // Wait for 5 seconds
         yield return new WaitForSeconds(5f);
-
-        if (availableMoves.Count == 0)
+        if (busy == false)
         {
-            // No available moves, create a new or blocked grid
-            // Implement these methods as needed
-            //CreateRandomGrid();
-            // CreateBlockedGrid();
-        }
-        else
-        {
-            // Select a random move
-            int randomIndex = Random.Range(0, availableMoves.Count); // Random.Range is inclusive for min, exclusive for max
-            Move firstMove = availableMoves[randomIndex];
-            Debug.Log(firstMove.ToString());
-
-            // Darken the involved grid nodes temporarily
-            // Ensure that gridNodes corresponds to buttons
-            if (buttons[firstMove.Row, firstMove.Col] != null)
+            if (availableMoves.Count == 0)
             {
-                GridCell cell = buttons[firstMove.Row, firstMove.Col].GetComponent<GridCell>();
-                if (cell != null)
+                // No available moves, create a new or blocked grid
+                // Implement these methods as needed
+                //CreateRandomGrid();
+                // CreateBlockedGrid();
+            }
+            else
+            {
+                // Select a random move
+                int randomIndex = Random.Range(0, availableMoves.Count); // Random.Range is inclusive for min, exclusive for max
+                Move firstMove = availableMoves[randomIndex];
+                Debug.Log(firstMove.ToString());
+
+                // Darken the involved grid nodes temporarily
+                // Ensure that gridNodes corresponds to buttons
+                if (buttons[firstMove.Row, firstMove.Col] != null)
                 {
-                    cell.DarkenTemporarily();
+                    GridCell cell = buttons[firstMove.Row, firstMove.Col].GetComponent<GridCell>();
+                    if (cell != null)
+                    {
+                        cell.DarkenTemporarily();
+                    }
+                }
+
+                if (buttons[firstMove.Row + firstMove.Dr, firstMove.Col + firstMove.Dc] != null)
+                {
+                    GridCell adjacentCell = buttons[firstMove.Row + firstMove.Dr, firstMove.Col + firstMove.Dc].GetComponent<GridCell>();
+                    if (adjacentCell != null)
+                    {
+                        adjacentCell.DarkenTemporarily();
+                    }
                 }
             }
-
-            if (buttons[firstMove.Row + firstMove.Dr, firstMove.Col + firstMove.Dc] != null)
-            {
-                GridCell adjacentCell = buttons[firstMove.Row + firstMove.Dr, firstMove.Col + firstMove.Dc].GetComponent<GridCell>();
-                if (adjacentCell != null)
-                {
-                    adjacentCell.DarkenTemporarily();
-                }
-            }
         }
-
         isWaiting = false;
     }
     public List<Move> GetAvailableMoves()
@@ -1003,9 +1067,9 @@ public partial class gridcreator : MonoBehaviour
             (Direction.Right, 0, 1)
         };
 
-        for (int row = 0; row < rows; row++)
+        for (int row = 0; row < rows; row += 3)
         {
-            for (int col = 0; col < columns; col++)
+            for (int col = 0; col < columns; col += 3)
             {
                 Debug.Log(row + ", " + col);
                 if (buttons[row, col] == null)
@@ -1037,18 +1101,19 @@ public partial class gridcreator : MonoBehaviour
                         tempGrid[newRow, newCol] = temp;
 
                         // Check if the swap results in any matches
-                        if (CheckForMatches(tempGrid))
+                        if (CheckForMatchesSelectedPosition(tempGrid, row, col))
                         {
                             Move move = new Move(row, col, direction, dr, dc);
                             availableMoves.Add(move);
+                            Debug.Log("Match found: " + move.ToString());
                         }
                         Debug.Log("Available moves found: " + availableMoves.Count);
                     }
                 }
-                if (availableMoves.Count > 0)
+                /*if (availableMoves.Count > 10)
                 {
                     return new List<Move>(availableMoves); // Exit the loop when availableMoves found
-                }
+                }*/
             }
         }
 
@@ -1125,5 +1190,10 @@ public class Move
     public override int GetHashCode()
     {
         return Row.GetHashCode() ^ Col.GetHashCode() ^ Direction.GetHashCode();
+    }
+
+    public override string ToString()
+    {
+        return $"Move: [Row: {Row}, Col: {Col}, Direction: {Direction}, Dr: {Dr}, Dc: {Dc}]";
     }
 }
