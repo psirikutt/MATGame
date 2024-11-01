@@ -90,7 +90,8 @@ public class GridCell : MonoBehaviour
         RectTransform rectTransform = GetComponent<RectTransform>();
         Vector2 currentPosition = rectTransform.anchoredPosition;
         if(currentPosition.y > 8f){
-            currentPosition.y = 12f;}
+            currentPosition.y = 12f;
+            currentPosition.x = 5.4f;}
         Vector2 targetPosition = new Vector2(XPosition, YPosition);
 
         // If current position is not the target, animate
@@ -151,6 +152,7 @@ public partial class gridcreator : MonoBehaviour
     private int score = 0;
     private List<int> combo = new List<int>();
     private bool showKidAnimation = false;
+    private Oper oper = Oper.None;
     private bool _busy = false;  // Backing field for the row
 
     // Property for row with didSet-like behavior
@@ -268,7 +270,7 @@ public partial class gridcreator : MonoBehaviour
         tempGrid[toRow, toCol] = temp;
 
         // Check for any matches in the temporary grid
-        bool hasMatch = CheckForMatches(tempGrid);
+        bool hasMatch = CheckForMatchesSelectedPosition(tempGrid, fromRow, fromCol);
         return hasMatch && !busy;
     }
 
@@ -777,22 +779,26 @@ public partial class gridcreator : MonoBehaviour
 
     private bool CheckPlus(int lhs, int rhs, int result)
     {
+        if(lhs + rhs == result){oper = Oper.Add;}
         return lhs + rhs == result;
     }
 
     private bool CheckDiff(int lhs, int rhs, int result)
     {
+        if(lhs - rhs == result){oper = Oper.Sub;}
         return lhs - rhs == result;
     }
 
     private bool CheckMultiply(int lhs, int rhs, int result)
     {
+        if(lhs * rhs == result){oper = Oper.Mul;}
         return lhs * rhs == result;
     }
 
     private bool CheckDivide(int lhs, int rhs, int result)
     {
         if (rhs == 0) return false;
+        if(lhs / rhs == result && lhs % rhs == 0){oper = Oper.Div;}
         return lhs / rhs == result && lhs % rhs == 0;
     }
     private void HandleVerticalMatch(GridCell cell, ref int valueToDestroy, List<GridCell> cellsToDestroy)
@@ -1198,4 +1204,12 @@ public class Move
     {
         return $"Move: [Row: {Row}, Col: {Col}, Direction: {Direction}, Dr: {Dr}, Dc: {Dc}]";
     }
+}
+public enum Oper
+{
+    Add,
+    Sub,
+    Mul,
+    Div,
+    None
 }
