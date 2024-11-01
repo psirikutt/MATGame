@@ -89,9 +89,11 @@ public class GridCell : MonoBehaviour
     {
         RectTransform rectTransform = GetComponent<RectTransform>();
         Vector2 currentPosition = rectTransform.anchoredPosition;
-        if(currentPosition.y > 8f){
+        if (currentPosition.y > 8f)
+        {
             currentPosition.y = 12f;
-            currentPosition.x = 5.4f;}
+            currentPosition.x = 5.4f;
+        }
         Vector2 targetPosition = new Vector2(XPosition, YPosition);
 
         // If current position is not the target, animate
@@ -270,7 +272,7 @@ public partial class gridcreator : MonoBehaviour
         tempGrid[toRow, toCol] = temp;
 
         // Check for any matches in the temporary grid
-        bool hasMatch = CheckForMatchesSelectedPosition(tempGrid, fromRow, fromCol);
+        bool hasMatch = CheckForMatches(tempGrid);
         return hasMatch && !busy;
     }
 
@@ -779,26 +781,26 @@ public partial class gridcreator : MonoBehaviour
 
     private bool CheckPlus(int lhs, int rhs, int result)
     {
-        if(lhs + rhs == result){oper = Oper.Add;}
+        if (lhs + rhs == result) { oper = Oper.Add; }
         return lhs + rhs == result;
     }
 
     private bool CheckDiff(int lhs, int rhs, int result)
     {
-        if(lhs - rhs == result){oper = Oper.Sub;}
+        if (lhs - rhs == result) { oper = Oper.Sub; }
         return lhs - rhs == result;
     }
 
     private bool CheckMultiply(int lhs, int rhs, int result)
     {
-        if(lhs * rhs == result){oper = Oper.Mul;}
+        if (lhs * rhs == result) { oper = Oper.Mul; }
         return lhs * rhs == result;
     }
 
     private bool CheckDivide(int lhs, int rhs, int result)
     {
         if (rhs == 0) return false;
-        if(lhs / rhs == result && lhs % rhs == 0){oper = Oper.Div;}
+        if (lhs / rhs == result && lhs % rhs == 0) { oper = Oper.Div; }
         return lhs / rhs == result && lhs % rhs == 0;
     }
     private void HandleVerticalMatch(GridCell cell, ref int valueToDestroy, List<GridCell> cellsToDestroy)
@@ -806,14 +808,71 @@ public partial class gridcreator : MonoBehaviour
         int row = cell.Row;
         int col = cell.Column;
 
-        GridCell cellB = buttons[row + 1, col].GetComponent<GridCell>();
-        GridCell cellC = buttons[row + 2, col].GetComponent<GridCell>();
+        if (oper == Oper.Add || oper == Oper.Sub)
+        {
+            // Insert cells to destroy
+            GridCell cellB = buttons[row + 1, col].GetComponent<GridCell>();
+            GridCell cellC = buttons[row + 2, col].GetComponent<GridCell>();
 
-        AddCellToDestroy(cell, cellsToDestroy);
-        AddCellToDestroy(cellB, cellsToDestroy);
-        AddCellToDestroy(cellC, cellsToDestroy);
+            AddCellToDestroy(cell, cellsToDestroy);
+            AddCellToDestroy(cellB, cellsToDestroy);
+            AddCellToDestroy(cellC, cellsToDestroy);
 
-        valueToDestroy += GetCellValue(cell) + GetCellValue(cellB) + GetCellValue(cellC);
+            // Add values to destroy
+            valueToDestroy += GetCellValue(cell) + GetCellValue(cellB) + GetCellValue(cellC);
+        }
+        else if (oper == Oper.Mul)
+        {
+            // Insert cells to destroy
+            GridCell cellB = buttons[row + 1, col].GetComponent<GridCell>();
+            GridCell cellC = buttons[row + 2, col].GetComponent<GridCell>();
+
+            AddCellToDestroy(cellB, cellsToDestroy);
+            AddCellToDestroy(cellC, cellsToDestroy);
+
+            // Add values to destroy
+            valueToDestroy += GetCellValue(cellB) + GetCellValue(cellC);
+
+            // Loop through rows to add more cells to destroy in the same column
+            for (int j = 0; j < columns; j++)
+            {
+                GridCell block = buttons[row, j].GetComponent<GridCell>();
+                if (block != null)
+                {
+                    AddCellToDestroy(block, cellsToDestroy);
+                    valueToDestroy += GetCellValue(block);
+                }
+            }
+        }
+        else if (oper == Oper.Div)
+        {
+            // Loop through all rows in the same column
+            for (int i = 0; i < columns; i++)
+            {
+                GridCell block = buttons[i, col].GetComponent<GridCell>();
+                if (block != null)
+                {
+                    AddCellToDestroy(block, cellsToDestroy);
+                    valueToDestroy += GetCellValue(block);
+                }
+            }
+
+            // Loop through columns to add more cells to destroy in the same row
+            for (int i = 0; i < rows; i++)
+            {
+                GridCell block = buttons[row, i].GetComponent<GridCell>();
+                if (block != null)
+                {
+                    AddCellToDestroy(block, cellsToDestroy);
+                    valueToDestroy += GetCellValue(block);
+                }
+            }
+
+            // Subtract the value of the initial cell
+            GridCell initialCell = buttons[row, col].GetComponent<GridCell>();
+            valueToDestroy -= GetCellValue(initialCell);
+        }
+        oper = Oper.None;
     }
 
     private void HandleHorizontalMatch(GridCell cell, ref int valueToDestroy, List<GridCell> cellsToDestroy)
@@ -821,14 +880,71 @@ public partial class gridcreator : MonoBehaviour
         int row = cell.Row;
         int col = cell.Column;
 
-        GridCell cellB = buttons[row, col + 1].GetComponent<GridCell>();
-        GridCell cellC = buttons[row, col + 2].GetComponent<GridCell>();
+        if (oper == Oper.Add || oper == Oper.Sub)
+        {
+            // Insert cells to destroy
+            GridCell cellB = buttons[row, col + 1].GetComponent<GridCell>();
+            GridCell cellC = buttons[row, col + 2].GetComponent<GridCell>();
 
-        AddCellToDestroy(cell, cellsToDestroy);
-        AddCellToDestroy(cellB, cellsToDestroy);
-        AddCellToDestroy(cellC, cellsToDestroy);
+            AddCellToDestroy(cell, cellsToDestroy);
+            AddCellToDestroy(cellB, cellsToDestroy);
+            AddCellToDestroy(cellC, cellsToDestroy);
 
-        valueToDestroy += GetCellValue(cell) + GetCellValue(cellB) + GetCellValue(cellC);
+            // Add values to destroy
+            valueToDestroy += GetCellValue(cell) + GetCellValue(cellB) + GetCellValue(cellC);
+        }
+        else if (oper == Oper.Mul)
+        {
+            // Insert cells to destroy
+            GridCell cellB = buttons[row, col + 1].GetComponent<GridCell>();
+            GridCell cellC = buttons[row, col + 2].GetComponent<GridCell>();
+
+            AddCellToDestroy(cellB, cellsToDestroy);
+            AddCellToDestroy(cellC, cellsToDestroy);
+
+            // Add values to destroy
+            valueToDestroy += GetCellValue(cellB) + GetCellValue(cellC);
+
+            // Loop through rows to add more cells to destroy in the same column
+            for (int i = 0; i < columns; i++)
+            {
+                GridCell block = buttons[i, col].GetComponent<GridCell>();
+                if (block != null)
+                {
+                    AddCellToDestroy(block, cellsToDestroy);
+                    valueToDestroy += GetCellValue(block);
+                }
+            }
+        }
+        else if (oper == Oper.Div)
+        {
+            // Loop through all rows in the same column
+            for (int i = 0; i < columns; i++)
+            {
+                GridCell block = buttons[i, col].GetComponent<GridCell>();
+                if (block != null)
+                {
+                    AddCellToDestroy(block, cellsToDestroy);
+                    valueToDestroy += GetCellValue(block);
+                }
+            }
+
+            // Loop through columns to add more cells to destroy in the same row
+            for (int i = 0; i < rows; i++)
+            {
+                GridCell block = buttons[row, i].GetComponent<GridCell>();
+                if (block != null)
+                {
+                    AddCellToDestroy(block, cellsToDestroy);
+                    valueToDestroy += GetCellValue(block);
+                }
+            }
+
+            // Subtract the value of the initial cell
+            GridCell initialCell = buttons[row, col].GetComponent<GridCell>();
+            valueToDestroy -= GetCellValue(initialCell);
+        }
+        oper = Oper.None;
     }
 
     private void AddCellToDestroy(GridCell cell, List<GridCell> cellsToDestroy)
