@@ -140,20 +140,85 @@ public class GridCell : MonoBehaviour
     }
 }
 
+public class GridIcon : MonoBehaviour
+{
+    public enum IconType { Hammer, Fire, Ice } // Define types of icons
+    public IconType iconType;
+
+    private RectTransform rectTransform;
+    private Image iconImage;
+
+    public Vector2Int gridPosition; // Position in the grid (row, column)
+    private Vector2 originalPosition; // To store the initial position
+    public IconsDraggable draggableComponent;
+
+    public void Initialize(IconType type)
+    {
+        iconType = type;
+        rectTransform = GetComponent<RectTransform>();
+        iconImage = GetComponent<Image>(); // Ensure iconImage is assigned
+        originalPosition = rectTransform.anchoredPosition;
+        draggableComponent = GetComponent<IconsDraggable>();
+        SetIconAppearance();
+    }
+
+    /*private void Start()
+    {
+        rectTransform = GetComponent<RectTransform>();
+        iconImage = GetComponent<Image>();
+        originalPosition = rectTransform.anchoredPosition; // Set initial position
+        draggableComponent = GetComponent<IconsDraggable>();
+        SetIconAppearance();
+    }*/
+
+    // Sets the icon's appearance based on its type
+    private void SetIconAppearance()
+    {
+        switch (iconType)
+        {
+            case IconType.Hammer:
+                iconImage.color = Color.gray; // Placeholder color
+                break;
+            case IconType.Fire:
+                iconImage.color = Color.red; // Placeholder color
+                break;
+            case IconType.Ice:
+                iconImage.color = Color.blue; // Placeholder color
+                break;
+        }
+    }
+
+    // Set the icon's grid position
+    public void SetIconPosition(int row, int column)
+    {
+        gridPosition = new Vector2Int(row, column);
+    }
+
+    // Reset icon to its original position
+    public void ResetPosition()
+    {
+        rectTransform.anchoredPosition = originalPosition;
+    }
+
+    // Method to destroy or clear the icon when needed
+    public void ClearIcon()
+    {
+        Destroy(gameObject);
+    }
+}
 
 public partial class gridcreator : MonoBehaviour
 {
-    public GameObject ButtonTemplate;    
-    public GameObject hammerPrefab;
-    public GameObject firePrefab;
-    public GameObject icePrefab;
+    public GameObject ButtonTemplate;
+    public GameObject IconTemplate;
 
     public int rows = 8;
     public int columns = 8;
     public int buttonSpacing = 0; // Spacing between buttons
 
     private GameObject[,] buttons; // Store references to all the buttons
-
+    private GameObject[] iconsGrid; // Store references to all the icons
+    public int iconsCount = 3;
     private int score = 0;
     private List<int> combo = new List<int>();
     private bool showKidAnimation = false;
@@ -188,9 +253,27 @@ public partial class gridcreator : MonoBehaviour
     {
         GenerateGrid();
         StartCoroutine(DestroyMatchesSilently());
-        InstantiateAndSetupIcon();
+        GenerateIcons(); // Call this function to generate icons at start
     }
-
+    void GenerateIcons()
+    {
+        Debug.Log("GenerateIcons");
+        iconsGrid = new GameObject[iconsCount];
+        RectTransform templateRect = IconTemplate.GetComponent<RectTransform>();
+        for (int k = 0; k < iconsCount; k++)
+        {
+            GameObject newIcon = Instantiate(IconTemplate, transform);
+            RectTransform IconRect = newIcon.GetComponent<RectTransform>();
+            IconRect.anchoredPosition = new Vector2(-4f, -8f);
+            GridIcon gridicon = newIcon.AddComponent<GridIcon>();
+            gridicon.Initialize(GridIcon.IconType.Hammer);
+            IconsDraggable iconsDraggable = newIcon.GetComponent<IconsDraggable>();
+            if (iconsDraggable == null)
+            {
+                iconsDraggable = newIcon.AddComponent<IconsDraggable>();
+            }
+        }
+    }
     void GenerateGrid()
     {
         buttons = new GameObject[rows, columns];
@@ -432,43 +515,6 @@ public partial class gridcreator : MonoBehaviour
 
         // Fallback (shouldn't occur)
         return 99;
-    }
-    public void InstantiateAndSetupIcon()
-    {
-        Instantiate(hammerPrefab, transform);
-        Instantiate(firePrefab, transform);
-        Instantiate(icePrefab, transform);
-        // Set initial position
-        RectTransform hammerrectTransform = hammerPrefab.GetComponent<RectTransform>();
-
-        // Add the Draggable component (if not already added in the prefab)
-        IconsDraggable hammerdraggable = hammerPrefab.GetComponent<IconsDraggable>();
-        if (hammerdraggable == null)
-        {
-            hammerdraggable = hammerPrefab.AddComponent<IconsDraggable>();
-        }
-        // Set initial position
-        RectTransform firerectTransform = firePrefab.GetComponent<RectTransform>();
-
-        // Add the Draggable component (if not already added in the prefab)
-        IconsDraggable firedraggable = firePrefab.GetComponent<IconsDraggable>();
-        if (firedraggable == null)
-        {
-            firedraggable = firePrefab.AddComponent<IconsDraggable>();
-        }// Set initial position
-        RectTransform icerectTransform = icePrefab.GetComponent<RectTransform>();
-
-        // Add the Draggable component (if not already added in the prefab)
-        IconsDraggable icedraggable = icePrefab.GetComponent<IconsDraggable>();
-        if (icedraggable == null)
-        {
-            icedraggable = icePrefab.AddComponent<IconsDraggable>();
-        }
-        hammerPrefab.SetActive(false);
-        firePrefab.SetActive(false);
-        icePrefab.SetActive(false);
-        // Optionally, call ResetPosition later to reset the icon's position
-        // draggable.ResetPosition(); // Example usage of resetting position
     }
 }
 
@@ -1391,14 +1437,9 @@ public class IconsDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
     {
         rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
     }
-
+        
     public void OnEndDrag(PointerEventData eventData)
     {
         // Optional: snap to grid or any other end drag behavior
-    }
-
-    public void ResetPosition()
-    {
-        rectTransform.anchoredPosition = originalPosition;
     }
 }
