@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Rendering;
 
 public class GridCell : MonoBehaviour
 {
@@ -140,12 +141,41 @@ public partial class gridcreator : MonoBehaviour
 
     private GameObject[,] buttons; // Store references to all the buttons
 
+    private int score = 0;
+    private List<int> combo = new List<int>();
+    private bool showKidAnimation = false;
+    private bool _busy = false;  // Backing field for the row
+
+    // Property for row with didSet-like behavior
+
+    private bool busy
+    {
+        get => _busy;
+        set
+        {
+            if (_busy != value) // Check if the value actually changes
+            {
+                Debug.Log("change from " + _busy + " to " + value);
+                _busy = value;
+
+                if (_busy) // When it changes to true
+                {
+                }
+                else // When it changes from true to false
+                {
+                    StartCoroutine(WaitAndCheck());
+                    //GetAvailableMoves();
+                }
+            }
+        }
+    }
+
     void Start()
     {
         GenerateGrid();
         StartCoroutine(DestroyMatchesSilently());
+        //StartCoroutine(CheckIfSumExists());
         // Optionally, trigger WaitAndCheck here
-        StartCoroutine(WaitAndCheck());
     }
 
     void GenerateGrid()
@@ -217,7 +247,7 @@ public partial class gridcreator : MonoBehaviour
         StartCoroutine(CheckIfSumExists());
 
         // Optionally, trigger WaitAndCheck here
-        StartCoroutine(WaitAndCheck());
+        //StartCoroutine(WaitAndCheck());
     }
 
     public bool CanSwap(int fromRow, int fromCol, int toRow, int toCol)
@@ -232,7 +262,7 @@ public partial class gridcreator : MonoBehaviour
 
         // Check for any matches in the temporary grid
         bool hasMatch = CheckForMatches(tempGrid);
-        return hasMatch && !isMoving;
+        return hasMatch && !busy;
     }
 
     // Checks if there are any matches in the grid.
@@ -432,15 +462,12 @@ public class Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
 
 public partial class gridcreator : MonoBehaviour
 {
-    private bool isMoving = false;
-    private int score = 0;
-    private List<int> combo = new List<int>();
-    private bool showKidAnimation = false;
 
     private IEnumerator DestroyMatchesSilently()
     {
         bool matchesExist = true;
         int count = 0;
+        busy = true;
 
         while (matchesExist)
         {
@@ -582,13 +609,14 @@ public partial class gridcreator : MonoBehaviour
             }
             else
             {
+                busy = false;
                 matchesExist = false;
             }
 
             count += 1;
-            if (count > 100)
+            if (count > 10)
             {
-                break;
+                StartCoroutine(CheckIfSumExists());
             }
         }
     }
@@ -597,7 +625,7 @@ public partial class gridcreator : MonoBehaviour
     {
         List<GridCell> cellsToDestroy = new List<GridCell>();
         int valueToDestroy = 0;
-        isMoving = true;
+        busy = true;
 
         // Find all cells to destroy
         for (int row = 0; row < rows; row++)
@@ -807,7 +835,7 @@ public partial class gridcreator : MonoBehaviour
             // No matches found, check game over
             // Optionally implement checkGameOver()
         }
-            isMoving = false;
+            busy = false;
     }
 
     public IEnumerator ApplyGravityWithAnimation()
