@@ -89,6 +89,8 @@ public class GridCell : MonoBehaviour
     {
         RectTransform rectTransform = GetComponent<RectTransform>();
         Vector2 currentPosition = rectTransform.anchoredPosition;
+        if(currentPosition.y > 8f){
+            currentPosition.y = 12f;}
         Vector2 targetPosition = new Vector2(XPosition, YPosition);
 
         // If current position is not the target, animate
