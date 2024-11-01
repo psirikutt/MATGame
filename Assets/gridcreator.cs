@@ -69,7 +69,7 @@ public class GridCell : MonoBehaviour
     {
         get
         {
-            return -Row * (cellHeight + buttonSpacing) + 8.4f;
+            return -Row * (cellHeight + buttonSpacing) + 4.2f;
         }
     }
 
@@ -89,10 +89,9 @@ public class GridCell : MonoBehaviour
     {
         RectTransform rectTransform = GetComponent<RectTransform>();
         Vector2 currentPosition = rectTransform.anchoredPosition;
-        if (currentPosition.y > 8f)
+        if (currentPosition.y > 4f)
         {
-            currentPosition.y = 12f;
-            currentPosition.x = 5.4f;
+         //   currentPosition.y = 12f;
         }
         Vector2 targetPosition = new Vector2(XPosition, YPosition);
 
