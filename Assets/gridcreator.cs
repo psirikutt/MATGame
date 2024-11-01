@@ -91,7 +91,7 @@ public class GridCell : MonoBehaviour
         Vector2 currentPosition = rectTransform.anchoredPosition;
         if (currentPosition.y > 4f)
         {
-         //   currentPosition.y = 12f;
+            //   currentPosition.y = 12f;
         }
         Vector2 targetPosition = new Vector2(XPosition, YPosition);
 
@@ -143,7 +143,11 @@ public class GridCell : MonoBehaviour
 
 public partial class gridcreator : MonoBehaviour
 {
-    public GameObject ButtonTemplate; // Drag your ButtonTemplate here in the Inspector
+    public GameObject ButtonTemplate;    
+    public GameObject hammerPrefab;
+    public GameObject firePrefab;
+    public GameObject icePrefab;
+
     public int rows = 8;
     public int columns = 8;
     public int buttonSpacing = 0; // Spacing between buttons
@@ -184,15 +188,13 @@ public partial class gridcreator : MonoBehaviour
     {
         GenerateGrid();
         StartCoroutine(DestroyMatchesSilently());
-        //StartCoroutine(CheckIfSumExists());
-        // Optionally, trigger WaitAndCheck here
+        InstantiateAndSetupIcon();
     }
 
     void GenerateGrid()
     {
         buttons = new GameObject[rows, columns];
         RectTransform templateRect = ButtonTemplate.GetComponent<RectTransform>();
-
         for (int i = 0; i < rows; i++)
         {
             for (int j = 0; j < columns; j++)
@@ -430,6 +432,43 @@ public partial class gridcreator : MonoBehaviour
 
         // Fallback (shouldn't occur)
         return 99;
+    }
+    public void InstantiateAndSetupIcon()
+    {
+        Instantiate(hammerPrefab, transform);
+        Instantiate(firePrefab, transform);
+        Instantiate(icePrefab, transform);
+        // Set initial position
+        RectTransform hammerrectTransform = hammerPrefab.GetComponent<RectTransform>();
+
+        // Add the Draggable component (if not already added in the prefab)
+        IconsDraggable hammerdraggable = hammerPrefab.GetComponent<IconsDraggable>();
+        if (hammerdraggable == null)
+        {
+            hammerdraggable = hammerPrefab.AddComponent<IconsDraggable>();
+        }
+        // Set initial position
+        RectTransform firerectTransform = firePrefab.GetComponent<RectTransform>();
+
+        // Add the Draggable component (if not already added in the prefab)
+        IconsDraggable firedraggable = firePrefab.GetComponent<IconsDraggable>();
+        if (firedraggable == null)
+        {
+            firedraggable = firePrefab.AddComponent<IconsDraggable>();
+        }// Set initial position
+        RectTransform icerectTransform = icePrefab.GetComponent<RectTransform>();
+
+        // Add the Draggable component (if not already added in the prefab)
+        IconsDraggable icedraggable = icePrefab.GetComponent<IconsDraggable>();
+        if (icedraggable == null)
+        {
+            icedraggable = icePrefab.AddComponent<IconsDraggable>();
+        }
+        hammerPrefab.SetActive(false);
+        firePrefab.SetActive(false);
+        icePrefab.SetActive(false);
+        // Optionally, call ResetPosition later to reset the icon's position
+        // draggable.ResetPosition(); // Example usage of resetting position
     }
 }
 
@@ -1327,4 +1366,39 @@ public enum Oper
     Mul,
     Div,
     None
+}
+
+
+public class IconsDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+{
+    private RectTransform rectTransform;
+    private Canvas canvas;
+    private Vector2 originalPosition;
+
+    private void Start()
+    {
+        rectTransform = GetComponent<RectTransform>();
+        canvas = GetComponentInParent<Canvas>();
+        originalPosition = rectTransform.anchoredPosition; // Store the original position
+    }
+
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        // Optional: add visual feedback
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
+    }
+
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        // Optional: snap to grid or any other end drag behavior
+    }
+
+    public void ResetPosition()
+    {
+        rectTransform.anchoredPosition = originalPosition;
+    }
 }
