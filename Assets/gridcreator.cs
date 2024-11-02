@@ -1436,7 +1436,8 @@ public class IconsDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
     {
         rectTransform = GetComponent<RectTransform>();
         canvas = GetComponentInParent<Canvas>();
-        originalPosition = rectTransform.anchoredPosition; // Store the original position
+        originalPosition = rectTransform.anchoredPosition; // Store the original positioncanvasGroup = gameObject.GetComponent<CanvasGroup>();
+        
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -1449,8 +1450,8 @@ public class IconsDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
         Vector3 worldPosition = Camera.main.ScreenToWorldPoint(eventData.position);
         // Get half of the cell's width
         RectTransform rectTransform = GetComponent<RectTransform>();
-        float halfCellWidth = rectTransform.rect.width / 2;
-        transform.position = new Vector3(worldPosition.x - halfCellWidth, worldPosition.y - halfCellWidth, 0f);
+       // float halfCellWidth = rectTransform.rect.width / 2;
+        transform.position = new Vector3(worldPosition.x, worldPosition.y, 0f);
         //rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
     }
 
