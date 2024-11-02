@@ -162,15 +162,6 @@ public class GridIcon : MonoBehaviour
         SetIconAppearance();
     }
 
-    /*private void Start()
-    {
-        rectTransform = GetComponent<RectTransform>();
-        iconImage = GetComponent<Image>();
-        originalPosition = rectTransform.anchoredPosition; // Set initial position
-        draggableComponent = GetComponent<IconsDraggable>();
-        SetIconAppearance();
-    }*/
-
     // Sets the icon's appearance based on its type
     private void SetIconAppearance()
     {
@@ -187,7 +178,27 @@ public class GridIcon : MonoBehaviour
                 break;
         }
     }
+    public void SetIconPositionWithAnimation(float duration = 0.5f)
+    {
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        Vector2 currentPosition = rectTransform.anchoredPosition;
+        if (currentPosition.y > 4f)
+        {
+            //   currentPosition.y = 12f;
+        }
+        Vector2 targetPosition = new Vector2(-4f, -8f);
 
+        // If current position is not the target, animate
+        if (currentPosition != targetPosition)
+        {
+            LeanTween.value(gameObject, currentPosition, targetPosition, duration)
+                .setEase(LeanTweenType.easeInOutQuad)
+                .setOnUpdate((Vector2 val) =>
+                {
+                    rectTransform.anchoredPosition = val;
+                });
+        }
+    }
     // Set the icon's grid position
     public void SetIconPosition(int row, int column)
     {
@@ -1435,11 +1446,18 @@ public class IconsDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
 
     public void OnDrag(PointerEventData eventData)
     {
-        rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
+        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(eventData.position);
+        // Get half of the cell's width
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        float halfCellWidth = rectTransform.rect.width / 2;
+        transform.position = new Vector3(worldPosition.x - halfCellWidth, worldPosition.y - halfCellWidth, 0f);
+        //rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
     }
-        
+
     public void OnEndDrag(PointerEventData eventData)
     {
+        GridIcon gridIcon = GetComponent<GridIcon>();
+        gridIcon.SetIconPositionWithAnimation();
         // Optional: snap to grid or any other end drag behavior
     }
 }
